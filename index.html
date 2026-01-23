@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yield Anomaly Detection | Quant Dashboard</title>
+    <meta name="description"
+        content="Real-time quantitative analysis for detecting yield anomalies using Log Returns and Z-Score methodology.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 3v18h18" />
+                        <path d="M7 16l4-8 4 6 5-10" />
+                    </svg>
+                </div>
+                <div class="logo-text">
+                    <h1>Yield Anomaly</h1>
+                    <span class="tagline">Quantitative Analysis Engine</span>
+                </div>
+            </div>
+            <div class="header-status">
+                <div class="status-indicator" id="statusIndicator">
+                    <span class="pulse"></span>
+                    <span class="status-text">Connecting...</span>
+                </div>
+                <div class="last-update" id="lastUpdate">--</div>
+            </div>
+        </header>
+
+        <!-- Asset Selector -->
+        <nav class="asset-nav">
+            <button class="asset-btn active" data-ticker="NDX">
+                <span class="asset-icon">📊</span>
+                <span class="asset-name">NASDAQ 100</span>
+                <span class="asset-ticker">^NDX</span>
+            </button>
+            <button class="asset-btn" data-ticker="XAU">
+                <span class="asset-icon">🥇</span>
+                <span class="asset-name">Gold</span>
+                <span class="asset-ticker">XAU/USD</span>
+            </button>
+            <button class="asset-btn" data-ticker="SPX">
+                <span class="asset-icon">📈</span>
+                <span class="asset-name">S&P 500</span>
+                <span class="asset-ticker">^GSPC</span>
+            </button>
+            <button class="asset-btn" data-ticker="BTC">
+                <span class="asset-icon">₿</span>
+                <span class="asset-name">Bitcoin</span>
+                <span class="asset-ticker">BTC/USD</span>
+            </button>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Signal Card -->
+            <section class="signal-card" id="signalCard">
+                <div class="signal-header">
+                    <h2 id="assetTitle">NASDAQ 100</h2>
+                    <div class="signal-badge" id="signalBadge">
+                        <span class="signal-text">LOADING</span>
+                    </div>
+                </div>
+                <div class="signal-body">
+                    <div class="signal-icon" id="signalIcon">⏳</div>
+                    <p class="signal-description" id="signalDescription">Fetching market data...</p>
+                </div>
+            </section>
+
+            <!-- Quant Report Table -->
+            <section class="report-card">
+                <h3 class="card-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                        <path d="M3 9h18M9 21V9" />
+                    </svg>
+                    Quant Report
+                </h3>
+                <div class="report-table">
+                    <div class="report-row">
+                        <span class="report-label">Current Price</span>
+                        <span class="report-value" id="currentPrice">--</span>
+                    </div>
+                    <div class="report-row">
+                        <span class="report-label">Log Return (R<sub>t</sub>)</span>
+                        <span class="report-value mono" id="logReturn">--</span>
+                    </div>
+                    <div class="report-row highlight">
+                        <span class="report-label">Z-Score (Anomaly Factor)</span>
+                        <span class="report-value mono" id="zScore">--</span>
+                    </div>
+                    <div class="report-row">
+                        <span class="report-label">ATR (Volatility)</span>
+                        <span class="report-value mono" id="atrValue">--</span>
+                    </div>
+                    <div class="report-row">
+                        <span class="report-label">Volume Ratio</span>
+                        <span class="report-value mono" id="volumeRatio">--</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Confidence & Trade Setup -->
+            <section class="trade-card" id="tradeCard">
+                <h3 class="card-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path
+                            d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                    </svg>
+                    Trade Setup
+                </h3>
+
+                <!-- Confidence Meter -->
+                <div class="confidence-section">
+                    <div class="confidence-header">
+                        <span class="confidence-label">Signal Confidence</span>
+                        <span class="confidence-value" id="confidenceValue">--</span>
+                    </div>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" id="confidenceFill" style="width: 0%"></div>
+                    </div>
+                    <div class="confidence-factors" id="confidenceFactors">
+                        <span class="factor">Z-Score: --</span>
+                        <span class="factor">Volume: --</span>
+                        <span class="factor">Trend: --</span>
+                        <span class="factor">Volatility: --</span>
+                    </div>
+                </div>
+
+                <!-- Trade Levels -->
+                <div class="trade-levels" id="tradeLevels">
+                    <div class="no-trade-message" id="noTradeMessage">
+                        <span class="icon">⚪</span>
+                        <span>No active trade signal</span>
+                    </div>
+                    <div class="trade-setup-content" id="tradeSetupContent" style="display: none;">
+                        <div class="trade-direction" id="tradeDirection">
+                            <span class="direction-badge long">LONG</span>
+                        </div>
+                        <div class="level-row entry">
+                            <span class="level-label">📍 Entry Price</span>
+                            <span class="level-value" id="entryPrice">--</span>
+                        </div>
+                        <div class="level-row stop-loss">
+                            <span class="level-label">🛑 Stop Loss</span>
+                            <span class="level-value" id="stopLoss">--</span>
+                            <span class="level-pct" id="slPercent">--</span>
+                        </div>
+                        <div class="level-row take-profit">
+                            <span class="level-label">🎯 TP1 (Conservative)</span>
+                            <span class="level-value" id="tp1Price">--</span>
+                            <span class="level-rr" id="tp1RR">R:R --</span>
+                        </div>
+                        <div class="level-row take-profit">
+                            <span class="level-label">🎯 TP2 (Standard)</span>
+                            <span class="level-value" id="tp2Price">--</span>
+                            <span class="level-rr" id="tp2RR">R:R --</span>
+                        </div>
+                        <div class="level-row take-profit">
+                            <span class="level-label">🎯 TP3 (Extended)</span>
+                            <span class="level-value" id="tp3Price">--</span>
+                            <span class="level-rr" id="tp3RR">R:R --</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Risk Management -->
+                <div class="risk-section" id="riskSection" style="display: none;">
+                    <h4 class="risk-title">💰 Risk Management</h4>
+                    <div class="risk-grid">
+                        <div class="risk-item">
+                            <span class="risk-label">Position Size</span>
+                            <span class="risk-value" id="positionSize">--</span>
+                        </div>
+                        <div class="risk-item">
+                            <span class="risk-label">Risk Amount</span>
+                            <span class="risk-value" id="riskAmount">--</span>
+                        </div>
+                        <div class="risk-item">
+                            <span class="risk-label">Risk %</span>
+                            <span class="risk-value" id="riskPercent">--</span>
+                        </div>
+                        <div class="risk-item">
+                            <span class="risk-label">Stop Distance</span>
+                            <span class="risk-value" id="stopDistance">--</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Chart Section -->
+            <section class="chart-card">
+                <h3 class="card-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 3v18h18" />
+                        <path d="M7 14l4-4 4 4 5-5" />
+                    </svg>
+                    Log Return vs Dynamic Thresholds
+                </h3>
+                <div class="chart-container">
+                    <canvas id="logReturnChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Z-Score Chart -->
+            <section class="chart-card">
+                <h3 class="card-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M12 6v6l4 2" />
+                    </svg>
+                    Z-Score Distribution
+                </h3>
+                <div class="chart-container">
+                    <canvas id="zScoreChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Methodology Card -->
+            <section class="methodology-card">
+                <h3 class="card-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                        <path d="M2 17l10 5 10-5" />
+                        <path d="M2 12l10 5 10-5" />
+                    </svg>
+                    Methodology
+                </h3>
+                <div class="methodology-content">
+                    <div class="formula-box">
+                        <span class="formula-label">Log Return</span>
+                        <code>R<sub>t</sub> = ln(P<sub>t</sub> / P<sub>t-1</sub>)</code>
+                    </div>
+                    <div class="formula-box">
+                        <span class="formula-label">Z-Score</span>
+                        <code>Z = (R<sub>t</sub> - μ) / σ</code>
+                    </div>
+                    <div class="signal-legend">
+                        <div class="legend-item critical-buy">
+                            <span class="legend-dot"></span>
+                            <span>Z &lt; -2.5: Critical Buy</span>
+                        </div>
+                        <div class="legend-item buy">
+                            <span class="legend-dot"></span>
+                            <span>Z &lt; -2.0: Buy Signal</span>
+                        </div>
+                        <div class="legend-item neutral">
+                            <span class="legend-dot"></span>
+                            <span>-1.5 &lt; Z &lt; 1.5: Neutral</span>
+                        </div>
+                        <div class="legend-item sell">
+                            <span class="legend-dot"></span>
+                            <span>Z &gt; +2.0: Sell Signal</span>
+                        </div>
+                        <div class="legend-item critical-sell">
+                            <span class="legend-dot"></span>
+                            <span>Z &gt; +2.5: Critical Sell</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Yield Anomaly Detection Engine • Statistical Arbitrage & Mean Reversion</p>
+            <p class="disclaimer">⚠️ For educational purposes only. Not financial advice.</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
