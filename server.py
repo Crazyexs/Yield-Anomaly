@@ -13,7 +13,7 @@ app = Flask(__name__, static_folder='.')
 CORS(app)
 # Configuration
 # Paste your Discord Webhook URL here or use environment variable
-DISCORD_WEBHOOK_URL = os.environ.get('https://discord.com/api/webhooks/1464301870804631614/rK3vDjuhGfn6rv1i6Q-X_XZgadLRruQ6odHo8dFRoi4pOOt-cbYE6GyPfpbRgueNlzxB')
+DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1464301870804631614/rK3vDjuhGfn6rv1i6Q-X_XZgadLRruQ6odHo8dFRoi4pOOt-cbYE6GyPfpbRgueNlzxB"
 
 # Initialize the trading engine
 detector = YieldAnomalyDetector(
