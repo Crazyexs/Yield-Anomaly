@@ -21,48 +21,26 @@
         <!-- Header -->
         <header class="header">
             <div class="logo">
-                <div class="logo-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 3v18h18" />
-                        <path d="M7 16l4-8 4 6 5-10" />
-                    </svg>
-                </div>
-                <div class="logo-text">
-                    <h1>Yield Anomaly</h1>
-                    <span class="tagline">Quantitative Analysis Engine</span>
-                </div>
+                <h1>Yield Anomaly Detector</h1>
+                <span class="tagline">v1.2 | Quant Research Environment</span>
+            </div>
+            <div class="nav-controls">
+                <a href="/chart" class="nav-btn">View Log Return Charts</a>
             </div>
             <div class="header-status">
                 <div class="status-indicator" id="statusIndicator">
-                    <span class="pulse"></span>
-                    <span class="status-text">Connecting...</span>
+                    Status: Connecting...
                 </div>
-                <div class="last-update" id="lastUpdate">--</div>
+                <div class="last-update" id="lastUpdate">Last Update: --</div>
             </div>
         </header>
 
         <!-- Asset Selector -->
         <nav class="asset-nav">
-            <button class="asset-btn active" data-ticker="NDX">
-                <span class="asset-icon">📊</span>
-                <span class="asset-name">NASDAQ 100</span>
-                <span class="asset-ticker">^NDX</span>
-            </button>
-            <button class="asset-btn" data-ticker="XAU">
-                <span class="asset-icon">🥇</span>
-                <span class="asset-name">Gold</span>
-                <span class="asset-ticker">XAU/USD</span>
-            </button>
-            <button class="asset-btn" data-ticker="SPX">
-                <span class="asset-icon">📈</span>
-                <span class="asset-name">S&P 500</span>
-                <span class="asset-ticker">^GSPC</span>
-            </button>
-            <button class="asset-btn" data-ticker="BTC">
-                <span class="asset-icon">₿</span>
-                <span class="asset-name">Bitcoin</span>
-                <span class="asset-ticker">BTC/USD</span>
-            </button>
+            <button class="asset-btn active" data-ticker="NDX">NASDAQ 100</button>
+            <button class="asset-btn" data-ticker="XAU">Gold (XAU)</button>
+            <button class="asset-btn" data-ticker="SPX">S&P 500</button>
+            <button class="asset-btn" data-ticker="BTC">Bitcoin</button>
         </nav>
 
         <!-- Main Content -->
@@ -71,25 +49,16 @@
             <section class="signal-card" id="signalCard">
                 <div class="signal-header">
                     <h2 id="assetTitle">NASDAQ 100</h2>
-                    <div class="signal-badge" id="signalBadge">
-                        <span class="signal-text">LOADING</span>
-                    </div>
+                    <div class="signal-badge" id="signalBadge">LOADING</div>
                 </div>
                 <div class="signal-body">
-                    <div class="signal-icon" id="signalIcon">⏳</div>
                     <p class="signal-description" id="signalDescription">Fetching market data...</p>
                 </div>
             </section>
 
             <!-- Quant Report Table -->
             <section class="report-card">
-                <h3 class="card-title">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2" />
-                        <path d="M3 9h18M9 21V9" />
-                    </svg>
-                    Quant Report
-                </h3>
+                <h3 class="card-title">Quant Report</h3>
                 <div class="report-table">
                     <div class="report-row">
                         <span class="report-label">Current Price</span>
@@ -144,8 +113,7 @@
                 <!-- Trade Levels -->
                 <div class="trade-levels" id="tradeLevels">
                     <div class="no-trade-message" id="noTradeMessage">
-                        <span class="icon">⚪</span>
-                        <span>No active trade signal</span>
+                        <span>No active trade signal. Waiting for statistical anomaly.</span>
                     </div>
                     <div class="trade-setup-content" id="tradeSetupContent" style="display: none;">
                         <div class="trade-direction" id="tradeDirection">
@@ -204,13 +172,7 @@
 
             <!-- Chart Section -->
             <section class="chart-card">
-                <h3 class="card-title">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 3v18h18" />
-                        <path d="M7 14l4-4 4 4 5-5" />
-                    </svg>
-                    Log Return vs Dynamic Thresholds
-                </h3>
+                <h3 class="card-title">Log Return vs Dynamic Thresholds</h3>
                 <div class="chart-container">
                     <canvas id="logReturnChart"></canvas>
                 </div>
@@ -218,13 +180,7 @@
 
             <!-- Z-Score Chart -->
             <section class="chart-card">
-                <h3 class="card-title">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <path d="M12 6v6l4 2" />
-                    </svg>
-                    Z-Score Distribution
-                </h3>
+                <h3 class="card-title">Z-Score Distribution</h3>
                 <div class="chart-container">
                     <canvas id="zScoreChart"></canvas>
                 </div>

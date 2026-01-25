@@ -44,12 +44,39 @@
         }
 
         .app-container {
-            max-width: 1600px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 1.5rem;
         }
 
         /* Header */
+        .nav-controls {
+            display: flex;
+            gap: 1rem;
+            margin: 0 1.5rem;
+        }
+
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid var(--accent-primary);
+            border-radius: 0.75rem;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            background: rgba(99, 102, 241, 0.2);
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+            transform: translateY(-2px);
+        }
+
         .header {
             display: flex;
             justify-content: space-between;
@@ -481,39 +508,22 @@
         <!-- Header -->
         <header class="header">
             <div class="logo">
-                <div>
-                    <h1>QUANT ANOMALIES</h1>
-                    <span class="tagline">Log Return Anomaly Detection</span>
-                </div>
+                <h1>Yield Anomaly | Charts</h1>
+            </div>
+            <div class="nav-controls">
+                <a href="/" class="nav-btn">Back to Dashboard</a>
             </div>
             <div class="status-box">
-                <span class="status-dot"></span>
                 <span id="lastUpdate">Connecting...</span>
             </div>
         </header>
 
         <!-- Asset Navigation -->
         <nav class="asset-nav">
-            <button class="asset-btn active" data-ticker="NDX">
-                <span class="icon">📊</span>
-                <span>NASDAQ 100</span>
-                <span class="ticker">^NDX</span>
-            </button>
-            <button class="asset-btn" data-ticker="XAU">
-                <span class="icon">🥇</span>
-                <span>Gold</span>
-                <span class="ticker">XAUUSD</span>
-            </button>
-            <button class="asset-btn" data-ticker="SPX">
-                <span class="icon">📈</span>
-                <span>S&P 500</span>
-                <span class="ticker">^GSPC</span>
-            </button>
-            <button class="asset-btn" data-ticker="BTC">
-                <span class="icon">₿</span>
-                <span>Bitcoin</span>
-                <span class="ticker">BTCUSD</span>
-            </button>
+            <button class="asset-btn active" data-ticker="NDX">NASDAQ 100</button>
+            <button class="asset-btn" data-ticker="XAU">Gold (XAU)</button>
+            <button class="asset-btn" data-ticker="SPX">S&P 500</button>
+            <button class="asset-btn" data-ticker="BTC">Bitcoin</button>
         </nav>
 
         <!-- Main Grid -->
@@ -524,15 +534,15 @@
                     <span class="chart-title" id="chartTitle">QUANT ANOMALIES | ^NDX</span>
                     <div class="chart-legend">
                         <div class="legend-item">
-                            <span class="legend-dot log-return"></span>
+                            <span class="legend-dot log-return" style="background:#1f77b4"></span>
                             <span>Log Return</span>
                         </div>
                         <div class="legend-item">
-                            <span class="legend-dot bullish"></span>
+                            <span class="legend-dot bullish" style="background:#2ca02c"></span>
                             <span>Confirmed Anomaly (Bullish)</span>
                         </div>
                         <div class="legend-item">
-                            <span class="legend-dot bearish"></span>
+                            <span class="legend-dot bearish" style="background:#d62728"></span>
                             <span>Confirmed Anomaly (Bearish)</span>
                         </div>
                     </div>
@@ -636,21 +646,21 @@
                 width: container.clientWidth,
                 height: 500,
                 layout: {
-                    background: { type: 'solid', color: '#000000' }, // Pure black as per image
-                    textColor: '#d1d5db',
+                    background: { type: 'solid', color: '#ffffff' },
+                    textColor: '#1f1f1f',
                 },
                 grid: {
-                    vertLines: { color: 'rgba(55, 65, 81, 0.3)' }, // Subtle grid
-                    horzLines: { color: 'rgba(55, 65, 81, 0.3)' },
+                    vertLines: { color: 'rgba(50, 50, 50, 0.1)' },
+                    horzLines: { color: 'rgba(50, 50, 50, 0.1)' },
                 },
                 crosshair: {
                     mode: LightweightCharts.CrosshairMode.Normal,
                 },
                 rightPriceScale: {
-                    borderColor: 'rgba(75, 85, 99, 0.4)',
+                    borderColor: 'rgba(0, 0, 0, 0.2)',
                 },
                 timeScale: {
-                    borderColor: 'rgba(75, 85, 99, 0.4)',
+                    borderColor: 'rgba(0, 0, 0, 0.2)',
                     timeVisible: true,
                     secondsVisible: false,
                 },
@@ -658,8 +668,8 @@
 
             // v3.8.0 API
             lineSeries = chart.addLineSeries({
-                color: '#6b7280', // Gray Log Return Line
-                lineWidth: 1,
+                color: '#1f77b4', // Matplotlib Blue
+                lineWidth: 2,
                 crosshairMarkerVisible: true,
                 crosshairMarkerRadius: 4,
                 priceFormat: {
@@ -671,7 +681,7 @@
 
             // Series connecting anomalies (Zig-Zag)
             anomalySeries = chart.addLineSeries({
-                color: 'rgba(255, 255, 255, 0.3)', // Faint white line
+                color: 'rgba(0, 0, 0, 0.5)',
                 lineWidth: 1,
                 lineStyle: 0, // Solid
                 crosshairMarkerVisible: false,
@@ -747,7 +757,7 @@
                     const marker = {
                         time: time,
                         position: isBullish ? 'belowBar' : 'aboveBar',
-                        color: isBullish ? '#10b981' : '#ef4444',
+                        color: isBullish ? '#2ca02c' : '#d62728', // Matplotlib Green/Red
                         shape: 'circle',
                         text: extractTime(data.labels[i]),
                         size: 6, // Larger dots as per image

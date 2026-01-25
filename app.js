@@ -54,9 +54,10 @@ const elements = {
 };
 
 // Chart.js Configuration
-Chart.defaults.color = '#9ca3af';
-Chart.defaults.borderColor = 'rgba(75, 85, 99, 0.3)';
-Chart.defaults.font.family = "'Inter', sans-serif";
+// Chart.js Configuration - Scientific Style
+Chart.defaults.color = '#333333';
+Chart.defaults.borderColor = '#e0e0e0';
+Chart.defaults.font.family = "'Consolas', 'Monaco', monospace";
 
 /**
  * Initialize the application
@@ -97,19 +98,19 @@ function initCharts() {
                 {
                     label: 'Log Return',
                     data: [],
-                    borderColor: '#6366f1',
-                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.3,
+                    borderColor: '#1f77b4', // Matplotlib Blue
+                    backgroundColor: 'rgba(31, 119, 180, 0.1)',
+                    borderWidth: 1.5,
+                    fill: false, // No fill for scientific look
+                    tension: 0, // Straight lines
                     pointRadius: 0,
                     pointHoverRadius: 4,
                 },
                 {
                     label: 'Upper (+2σ)',
                     data: [],
-                    borderColor: '#ef4444',
-                    borderWidth: 1.5,
+                    borderColor: '#d62728', // Matplotlib Red
+                    borderWidth: 1,
                     borderDash: [5, 5],
                     fill: false,
                     pointRadius: 0,
@@ -117,8 +118,8 @@ function initCharts() {
                 {
                     label: 'Lower (-2σ)',
                     data: [],
-                    borderColor: '#10b981',
-                    borderWidth: 1.5,
+                    borderColor: '#2ca02c', // Matplotlib Green
+                    borderWidth: 1,
                     borderDash: [5, 5],
                     fill: false,
                     pointRadius: 0,
@@ -126,7 +127,7 @@ function initCharts() {
                 {
                     label: 'Mean',
                     data: [],
-                    borderColor: '#6b7280',
+                    borderColor: '#7f7f7f', // Gray
                     borderWidth: 1,
                     borderDash: [2, 2],
                     fill: false,
@@ -383,21 +384,19 @@ function updateCharts(data) {
  * Update connection status
  */
 function updateStatus(status, message = '') {
-    const pulse = elements.statusIndicator.querySelector('.pulse');
-    const text = elements.statusIndicator.querySelector('.status-text');
-
+    const el = elements.statusIndicator;
     switch (status) {
         case 'loading':
-            pulse.style.background = '#eab308';
-            text.textContent = 'Loading...';
+            el.textContent = 'Status: Loading data...';
+            el.style.color = '#bcbd22';
             break;
         case 'connected':
-            pulse.style.background = '#10b981';
-            text.textContent = 'Connected';
+            el.textContent = 'Status: Connected (Real-Time)';
+            el.style.color = '#2ca02c';
             break;
         case 'error':
-            pulse.className = 'pulse error';
-            text.textContent = `Error: ${message}`;
+            el.textContent = `Status: Error (${message})`;
+            el.style.color = '#d62728';
             break;
     }
 }
@@ -433,15 +432,16 @@ function getSignalClass(severity) {
 }
 
 function getSignalIcon(severity) {
+    // Return text codes instead of emojis for scientific look
     const map = {
-        'critical_long': '🟢',
-        'long': '📈',
-        'neutral': '⚪',
-        'watch': '👁️',
-        'short': '📉',
-        'critical_short': '⚠️',
+        'critical_long': '[CRIT BUY]',
+        'long': '[BUY]',
+        'neutral': '[NEUTRAL]',
+        'watch': '[WATCH]',
+        'short': '[SELL]',
+        'critical_short': '[CRIT SELL]',
     };
-    return map[severity] || '⏳';
+    return map[severity] || '[WAIT]';
 }
 
 function getZScoreClass(z) {
