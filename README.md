@@ -1,227 +1,54 @@
-# Yield Anomaly Detection System
+# Yield Anomaly Detector 
 
-[![Python 3.10+](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Flask](https://img.shields.io/badge/Flask-3.0+-green.svg)](https://flask.palletsprojects.com/)
+I built this tool because I wanted a mathematically grounded way to find trading setups, rather than just staring at charts all day.
 
-A quantitative analysis platform for detecting statistical anomalies in financial assets using **Logarithmic Returns** and **Z-Score** methodology.
+It's a **mean reversion** system that watches for "statistical glitches" in the market—moments where the price moves so aggressively that it's statistically likely to snap back (or at least pause).
 
-![Dashboard Preview](https://img.shields.io/badge/Status-Active-brightgreen)
+## What it actually does
 
-## 📊 Supported Assets
+1.  **Watches the Market**: It pulls live data for **Bitcoin**, **Gold**, **NASDAQ**, and **S&P 500**.
+2.  **Calculates Z-Scores**: It measures how "abnormal" the current price move is compared to the last 20 periods.
+3.  **Signals Anomalies**:
+    *   **Z-Score > 2.0**: Overbought. (Look for shorts).
+    *   **Z-Score < -2.0**: Oversold. (Look for longs).
+4.  **Validates Entries**: It doesn't just blindly buy. It waits for the next candle to confirm the reversal (e.g., a green candle after a crash) or a breakout of the anomaly candle.
 
-| Asset | Ticker | Symbol |
-|-------|--------|--------|
-| NASDAQ 100 | ^NDX | 📊 |
-| Gold | GC=F | 🥇 |
-| S&P 500 | ^GSPC | 📈 |
-| Bitcoin | BTC-USD | ₿ |
+## How to run it
 
----
+You need Python installed. If you have that, just do this:
 
-## 🚀 Quick Start
+1.  **Install dependencies**
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-### Installation
+2.  **Run the web server**
+    ```bash
+    python server.py
+    ```
 
-<details>
-<summary><b>🍎 macOS / Linux</b></summary>
+3.  **Open your browser**
+    Go to [http://localhost:5001](http://localhost:5001). You'll see the dashboard with live charts.
 
-```bash
-cd /path/to/Yield\ Anomaly
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-**Start the server:**
-```bash
-source venv/bin/activate
-python server.py
-```
-
-</details>
-
-<details>
-<summary><b>🪟 Windows 11</b></summary>
-
-1. **Install Python 3.10+** from [python.org](https://www.python.org/downloads/windows/)
-   - ✅ Check "Add Python to PATH" during installation
-
-2. **Open PowerShell or Command Prompt:**
-
-```powershell
-cd C:\path\to\Yield Anomaly
-python -m venv venv
-.\venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-**Start the server:**
-```powershell
-.\venv\Scripts\activate
-python server.py
-```
-
-> **Note:** If you get an execution policy error, run:
-> ```powershell
-> Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-> ```
-
-</details>
-
-<details>
-<summary><b>🍓 Raspberry Pi (Dedicated Device)</b></summary>
-
-Perfect for a 24/7 market monitor screen.
-
-1. **Update System & Install Dependencies:**
-   ```bash
-   sudo apt update
-   sudo apt install -y python3-venv python3-pip libatlas-base-dev chromium-browser
-   ```
-
-2. **Setup Project:**
-   ```bash
-   mkdir -p ~/yield-anomaly
-   cd ~/yield-anomaly
-   # (Copy files via SCP or Git Clone)
-   
-   python3 -m venv venv --system-site-packages
-   source venv/bin/activate
-   pip install -r requirements.txt
-   ```
-
-3. **Start Server:**
-   ```bash
-   source venv/bin/activate
-   python server.py
-   ```
-
-4. **Launch Kiosk Mode (Full Screen Dashboard):**
-   ```bash
-   chromium-browser --kiosk --app=http://localhost:5001/chart
-   ```
-   *For the main dashboard, use `http://localhost:5001` instead.*
-
-</details>
-
-### 2. Open the Dashboard
-
-Open **http://localhost:5001** in your browser.
-
-### 3. Run Quant Engine (CLI Only)
+### Or runs in functionality mode (CLI)
+If you prefer the terminal like me, runs the engine directly to get a text report of all assets:
 
 ```bash
-# macOS/Linux
-python quant_engine.py
-
-# Windows
 python quant_engine.py
 ```
 
-Prints a console report for all 4 assets.
+## Features
+
+*   **Web Dashboard**: A clean, dark-mode UI to visualize the Bollinger Bands and Anomaly points.
+*   **Discord Alerts**: I added a webhook integration so it can ping a Discord channel when a confirmed setup appears (check `server.py` to add your own webhook URL).
+*   **Trade Setups**: The system suggests specific **Entry Prices**, **Stop Losses**, and **Take Profit** targets based on volatility (ATR).
+
+## The Math (Simple Version)
+
+It computes the `Log Return` of the price, then finds the standard deviation over a rolling window (default 20 candles).
+*   **Z-Score = (Current Return - Average Return) / Standard Deviation**
+
+If the Z-Score is **±2.5**, that's a rare event (statistical anomaly). That's where the money is.
 
 ---
-
-## 🔬 Methodology
-
-### Logarithmic Returns
-```
-R_t = ln(P_t / P_{t-1})
-```
-
-### Z-Score (Anomaly Factor)
-```
-Z = (R_t - μ) / σ
-```
-Where μ = 20-period rolling mean, σ = 20-period rolling standard deviation.
-
-### Signal Thresholds
-
-| Z-Score | Signal | Description |
-|---------|--------|-------------|
-| Z < -2.5 | 🟢 CRITICAL BUY | Statistical Oversold - Mean Reversion Likely |
-| Z < -2.0 | 📈 BUY | Oversold Zone - Consider Long Position |
-| -1.5 < Z < 1.5 | ⚪ NEUTRAL | Within Normal Range - No Action |
-| Z > +2.0 | 📉 SELL | Overbought Zone - Consider Short Position |
-| Z > +2.5 | ⚠️ CRITICAL SELL | Statistical Overbought - Mean Reversion Likely |
-
----
-
-## 🔌 API Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/analyze/<ticker>` | GET | Full analysis for a single asset |
-| `/api/chart-data/<ticker>` | GET | Time-series data for charting |
-| `/api/analyze-all` | GET | Analysis for all 4 assets |
-| `/api/config` | GET/POST | View or update configuration |
-
-### Example Request
-
-```bash
-curl http://localhost:5001/api/analyze/BTC
-```
-
-### Example Response
-
-```json
-{
-  "success": true,
-  "data": {
-    "ticker": "BTC-USD",
-    "asset_name": "Bitcoin",
-    "price": { "current": 89200.87 },
-    "analysis": {
-      "log_return": 0.000264,
-      "z_score": 0.355,
-      "upper_threshold": 0.002145,
-      "lower_threshold": -0.002429
-    },
-    "signal": {
-      "signal": "NEUTRAL",
-      "description": "⚪ Within Normal Range - No Action"
-    }
-  }
-}
-```
-
----
-
-## 📁 Project Structure
-
-```
-Yield Anomaly/
-├── quant_engine.py    # Core quantitative analysis engine
-├── server.py          # Flask API server
-├── index.html         # Dashboard UI
-├── style.css          # Premium dark-mode styling
-├── app.js             # Frontend logic & Chart.js
-├── requirements.txt   # Python dependencies
-└── venv/              # Virtual environment
-```
-
----
-
-## ⚙️ Configuration
-
-Default parameters (can be modified in `quant_engine.py` or via API):
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `period` | 5d | Data period to fetch |
-| `interval` | 15m | Candle interval |
-| `window` | 20 | Rolling window size |
-| `threshold` | 2.0 | Z-Score for standard signals |
-| `critical_threshold` | 2.5 | Z-Score for critical signals |
-
----
-
-## ⚠️ Disclaimer
-
-**For educational purposes only.** This is not financial advice. Statistical anomalies do not guarantee future returns. Always conduct your own research and consider consulting a financial advisor before making investment decisions.
-
----
-
-## 📜 License
-
-MIT License - Feel free to use and modify.
+*Disclaimer: This is code, not financial advice. I use this to help me make decisions, but markets are crazy. Use at your own risk.*

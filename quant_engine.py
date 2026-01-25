@@ -339,18 +339,26 @@ class YieldAnomalyTrader:
             tp3 = entry - (risk * 4.0)
 
         embed = {
-            "title": f"🚨 {anomaly['direction']} SETUP ({ticker})",
-            "description": f"**Asset:** {asset_name}\n**Z-Score:** {anomaly['z_score']:.2f}\n**Status:** ✅ Confirmed",
+            "title": f"QUANT SIGNAL: {anomaly['direction']} {ticker}",
+            "description": (
+                f"**Asset:** {asset_name}\n"
+                f"**Pattern:** Statistical Anomaly (Z-Score: {anomaly['z_score']:.2f})\n"
+                f"**Status:** CONFIRMED ENTRY"
+            ),
             "color": color,
             "fields": [
-                {"name": "ENTRY", "value": f"**${entry:,.2f}**", "inline": True},
+                {"name": "ENTRY PRICE", "value": f"**${entry:,.2f}**", "inline": True},
                 {"name": "STOP LOSS", "value": f"${sl:,.2f}", "inline": True},
-                {"name": "RISK", "value": f"${risk:,.2f}", "inline": True},
-                {"name": "🎯 TP1 (1.5R)", "value": f"${tp1:,.2f}", "inline": True},
-                {"name": "🎯 TP2 (2.5R)", "value": f"${tp2:,.2f}", "inline": True},
-                {"name": "🚀 TP3 (4.0R)", "value": f"${tp3:,.2f}", "inline": True}
+                {"name": "RISK (1R)", "value": f"${risk:,.2f}", "inline": True},
+                
+                {"name": "━━━━━━━━━━━━━━━━━━━━", "value": "", "inline": False},
+                
+                {"name": "TARGET 1 (1.5R)", "value": f"${tp1:,.2f}", "inline": True},
+                {"name": "TARGET 2 (2.5R)", "value": f"${tp2:,.2f}", "inline": True},
+                {"name": "TARGET 3 (4.0R)", "value": f"${tp3:,.2f}", "inline": True}
             ],
-            "footer": {"text": f"Signal Time: {anomaly['time'][5:16]} | Yield Anomaly Engine"}
+            "footer": {"text": f"Yield Anomaly Engine | {anomaly['time'][5:16]}"},
+            "thumbnail": {"url": "https://cdn-icons-png.flaticon.com/512/3310/3310624.png" if anomaly['direction'] == 'SHORT' else "https://cdn-icons-png.flaticon.com/512/3310/3310645.png"}
         }
         
         payload = {"embeds": [embed]}
