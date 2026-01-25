@@ -54,10 +54,11 @@ const elements = {
 };
 
 // Chart.js Configuration
-// Chart.js Configuration - Scientific Style
-Chart.defaults.color = '#333333';
-Chart.defaults.borderColor = '#e0e0e0';
-Chart.defaults.font.family = "'Consolas', 'Monaco', monospace";
+// Chart.js Configuration - Terminal Style
+Chart.defaults.color = '#888888';
+Chart.defaults.borderColor = '#222222';
+Chart.defaults.font.family = "'Consolas', monospace";
+Chart.defaults.font.size = 11;
 
 /**
  * Initialize the application
@@ -98,44 +99,45 @@ function initCharts() {
                 {
                     label: 'Log Return',
                     data: [],
-                    borderColor: '#1f77b4', // Matplotlib Blue
-                    backgroundColor: 'rgba(31, 119, 180, 0.1)',
-                    borderWidth: 1.5,
-                    fill: false, // No fill for scientific look
-                    tension: 0, // Straight lines
+                    borderColor: '#ff9900', // Bloomberg Amber
+                    backgroundColor: 'rgba(255, 153, 0, 0.1)',
+                    borderWidth: 1,
+                    fill: false,
+                    tension: 0,
                     pointRadius: 0,
-                    pointHoverRadius: 4,
+                    pointHoverRadius: 0,
                 },
                 {
                     label: 'Upper (+2σ)',
                     data: [],
-                    borderColor: '#d62728', // Matplotlib Red
+                    borderColor: '#ff0000', // Red
                     borderWidth: 1,
-                    borderDash: [5, 5],
+                    borderDash: [2, 2],
                     fill: false,
                     pointRadius: 0,
                 },
                 {
                     label: 'Lower (-2σ)',
                     data: [],
-                    borderColor: '#2ca02c', // Matplotlib Green
+                    borderColor: '#00ff00', // Green
                     borderWidth: 1,
-                    borderDash: [5, 5],
+                    borderDash: [2, 2],
                     fill: false,
                     pointRadius: 0,
                 },
                 {
                     label: 'Mean',
                     data: [],
-                    borderColor: '#7f7f7f', // Gray
+                    borderColor: '#444444', // Dark Gray
                     borderWidth: 1,
-                    borderDash: [2, 2],
+                    borderDash: [1, 1],
                     fill: false,
                     pointRadius: 0,
                 },
             ]
         },
         options: {
+            animation: false, // No animation for terminal feel
             responsive: true,
             maintainAspectRatio: false,
             interaction: { intersect: false, mode: 'index' },
@@ -218,66 +220,73 @@ async function loadData(ticker) {
 
     } catch (error) {
         console.error('Error loading data:', error);
-        updateStatus('error', error.message);
+        // Only show error if status indicator exists
+        if (elements.statusIndicator) updateStatus('error', error.message);
     }
 }
 
 /**
  * Update UI with analysis data
  */
+// SAFELY UPDATE UI ELEMENTS
+function set(idOrElement, value, className = null) {
+    const el = typeof idOrElement === 'string' ? elements[idOrElement] : idOrElement;
+    if (el) {
+        el.textContent = value;
+        if (className) el.className = className;
+    }
+}
+
 function updateUI(data) {
     // Update title
-    elements.assetTitle.textContent = data.asset_name;
+    set('assetTitle', data.asset_name);
 
     // Update signal card
     const signalClass = getSignalClass(data.signal.severity);
-    elements.signalCard.className = `signal-card ${signalClass}`;
-    elements.signalBadge.textContent = data.signal.signal.replace('_', ' ');
-    elements.signalBadge.className = `signal-badge ${signalClass}`;
-    elements.signalIcon.textContent = getSignalIcon(data.signal.severity);
-    elements.signalDescription.textContent = data.signal.description;
+    if (elements.signalCard) elements.signalCard.className = `signal-card ${signalClass}`;
+    set('signalBadge', data.signal.signal.replace('_', ' '), `signal-badge ${signalClass}`);
+    set('signalIcon', getSignalIcon(data.signal.severity));
+    set('signalDescription', data.signal.description);
 
     // Update quant report
-    elements.currentPrice.textContent = formatPrice(data.price.current, data.ticker);
+    set('currentPrice', formatPrice(data.price.current, data.ticker));
 
     if (data.analysis.log_return !== null) {
-        elements.logReturn.textContent = formatDecimal(data.analysis.log_return, 6);
-        elements.logReturn.className = `report-value mono ${data.analysis.log_return >= 0 ? 'positive' : 'negative'}`;
+        const cls = `report-value mono ${data.analysis.log_return >= 0 ? 'positive' : 'negative'}`;
+        set('logReturn', formatDecimal(data.analysis.log_return, 6), cls);
     } else {
-        elements.logReturn.textContent = '--';
+        set('logReturn', '--');
     }
 
     if (data.analysis.z_score !== null) {
-        elements.zScore.textContent = formatDecimal(data.analysis.z_score, 3);
-        elements.zScore.className = `report-value mono ${getZScoreClass(data.analysis.z_score)}`;
+        const cls = `report-value mono ${getZScoreClass(data.analysis.z_score)}`;
+        set('zScore', formatDecimal(data.analysis.z_score, 3), cls);
     } else {
-        elements.zScore.textContent = '--';
+        set('zScore', '--');
     }
 
     // ATR and Volume
     if (data.analysis.atr !== null) {
-        elements.atrValue.textContent = `${formatDecimal(data.analysis.atr, 2)} (${formatDecimal(data.analysis.atr_percent, 2)}%)`;
+        set('atrValue', `${formatDecimal(data.analysis.atr, 2)} (${formatDecimal(data.analysis.atr_percent, 2)}%)`);
     } else {
-        elements.atrValue.textContent = '--';
+        set('atrValue', '--');
     }
 
-    // STUB: Volume Ratio (Not present in current quant engine)
-    elements.volumeRatio.textContent = '--';
+    set('volumeRatio', '--');
 
     // Update confidence (if available)
     if (data.confidence) {
         updateConfidence(data.confidence);
     } else {
-        // Clear confidence if not available
-        elements.confidenceValue.textContent = '--';
-        elements.confidenceFill.style.width = '0%';
+        set('confidenceValue', '--');
+        if (elements.confidenceFill) elements.confidenceFill.style.width = '0%';
     }
 
     // Update trade setup
     updateTradeSetup(data.trade_setup);
 
     // Update timestamp
-    elements.lastUpdate.textContent = `Updated: ${new Date().toLocaleTimeString()}`;
+    set('lastUpdate', `UPDATED: ${new Date().toLocaleTimeString().toUpperCase()}`);
 }
 
 /**
@@ -290,18 +299,21 @@ function updateConfidence(confidence) {
         return;
     }
 
-    elements.confidenceValue.textContent = `${confidence.score}% (${confidence.level})`;
-    elements.confidenceValue.style.color = confidence.color;
-    elements.confidenceFill.style.width = `${confidence.score}%`;
+    if (elements.confidenceValue) {
+        elements.confidenceValue.textContent = `${confidence.score}% (${confidence.level})`;
+        elements.confidenceValue.style.color = confidence.color;
+    }
+    if (elements.confidenceFill) elements.confidenceFill.style.width = `${confidence.score}%`;
 
-    // Set fill color class
-    elements.confidenceFill.className = 'confidence-fill';
-    if (confidence.level === 'HIGH') {
-        elements.confidenceFill.classList.add('high');
-    } else if (confidence.level === 'MEDIUM') {
-        elements.confidenceFill.classList.add('medium');
-    } else {
-        elements.confidenceFill.classList.add('low');
+    if (elements.confidenceFill) {
+        elements.confidenceFill.className = 'confidence-fill';
+        if (confidence.level === 'HIGH') {
+            elements.confidenceFill.classList.add('high');
+        } else if (confidence.level === 'MEDIUM') {
+            elements.confidenceFill.classList.add('medium');
+        } else {
+            elements.confidenceFill.classList.add('low');
+        }
     }
 
     // Update factors
@@ -320,43 +332,47 @@ function updateConfidence(confidence) {
  * Update trade setup display
  */
 function updateTradeSetup(tradeSetup) {
+    if (!elements.noTradeMessage) return; // Guard clause
+
     if (!tradeSetup) {
-        elements.noTradeMessage.style.display = 'flex';
-        elements.tradeSetupContent.style.display = 'none';
-        elements.riskSection.style.display = 'none';
+        if (elements.noTradeMessage) elements.noTradeMessage.style.display = 'flex';
+        if (elements.tradeSetupContent) elements.tradeSetupContent.style.display = 'none';
+        if (elements.riskSection) elements.riskSection.style.display = 'none';
         return;
     }
 
-    elements.noTradeMessage.style.display = 'none';
-    elements.tradeSetupContent.style.display = 'flex';
-    elements.riskSection.style.display = 'block';
+    if (elements.noTradeMessage) elements.noTradeMessage.style.display = 'none';
+    if (elements.tradeSetupContent) elements.tradeSetupContent.style.display = 'flex';
+    if (elements.riskSection) elements.riskSection.style.display = 'block';
 
     // Direction badge
     const isLong = tradeSetup.direction === 'LONG';
-    elements.tradeDirection.innerHTML = `
-        <span class="direction-badge ${isLong ? 'long' : 'short'}">${tradeSetup.direction}</span>
-    `;
+    if (elements.tradeDirection) {
+        elements.tradeDirection.innerHTML = `
+            <span class="direction-badge ${isLong ? 'long' : 'short'}">${tradeSetup.direction}</span>
+        `;
+    }
 
     // Price levels
-    elements.entryPrice.textContent = `$${tradeSetup.entry_price.toLocaleString()}`;
-    elements.stopLoss.textContent = `$${tradeSetup.stop_loss.toLocaleString()}`;
-    elements.slPercent.textContent = `-${tradeSetup.risk_management.stop_distance_percent}%`;
+    set('entryPrice', `$${tradeSetup.entry_price.toLocaleString()}`);
+    set('stopLoss', `$${tradeSetup.stop_loss.toLocaleString()}`);
+    set('slPercent', `-${tradeSetup.risk_management.stop_distance_percent}%`);
 
     // Take profits
-    elements.tp1Price.textContent = `$${tradeSetup.take_profit.tp1.price.toLocaleString()}`;
-    elements.tp1RR.textContent = `R:R ${tradeSetup.take_profit.tp1.rr_ratio}`;
+    set('tp1Price', `$${tradeSetup.take_profit.tp1.price.toLocaleString()}`);
+    set('tp1RR', `R:R ${tradeSetup.take_profit.tp1.rr_ratio}`);
 
-    elements.tp2Price.textContent = `$${tradeSetup.take_profit.tp2.price.toLocaleString()}`;
-    elements.tp2RR.textContent = `R:R ${tradeSetup.take_profit.tp2.rr_ratio}`;
+    set('tp2Price', `$${tradeSetup.take_profit.tp2.price.toLocaleString()}`);
+    set('tp2RR', `R:R ${tradeSetup.take_profit.tp2.rr_ratio}`);
 
-    elements.tp3Price.textContent = `$${tradeSetup.take_profit.tp3.price.toLocaleString()}`;
-    elements.tp3RR.textContent = `R:R ${tradeSetup.take_profit.tp3.rr_ratio}`;
+    set('tp3Price', `$${tradeSetup.take_profit.tp3.price.toLocaleString()}`);
+    set('tp3RR', `R:R ${tradeSetup.take_profit.tp3.rr_ratio}`);
 
     // Risk management
-    elements.positionSize.textContent = `${tradeSetup.risk_management.position_size.toFixed(4)} units`;
-    elements.riskAmount.textContent = `$${tradeSetup.risk_management.risk_amount.toFixed(2)}`;
-    elements.riskPercent.textContent = `${tradeSetup.risk_management.risk_percent}%`;
-    elements.stopDistance.textContent = `$${tradeSetup.risk_management.stop_distance.toFixed(2)}`;
+    set('positionSize', `${tradeSetup.risk_management.position_size.toFixed(4)} units`);
+    set('riskAmount', `$${tradeSetup.risk_management.risk_amount.toFixed(2)}`);
+    set('riskPercent', `${tradeSetup.risk_management.risk_percent}%`);
+    set('stopDistance', `$${tradeSetup.risk_management.stop_distance.toFixed(2)}`);
 }
 
 /**

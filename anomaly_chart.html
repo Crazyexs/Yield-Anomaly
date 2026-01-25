@@ -5,502 +5,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quant Anomalies | Yield Anomaly Detection</title>
-    <meta name="description"
-        content="Real-time quantitative anomaly detection using Log Returns and Z-Score methodology.">
+    <meta name="description" content="Real-time quantitative anomaly detection.">
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
         rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Chart Library -->
     <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
-    <style>
-        :root {
-            --bg-primary: #0a0e17;
-            --bg-secondary: #111827;
-            --bg-card: rgba(17, 24, 39, 0.95);
-            --accent-primary: #6366f1;
-            --signal-buy: #10b981;
-            --signal-sell: #ef4444;
-            --signal-watch: #eab308;
-            --text-primary: #f9fafb;
-            --text-secondary: #9ca3af;
-            --text-muted: #6b7280;
-            --border-color: rgba(75, 85, 99, 0.4);
-            --font-sans: 'Inter', sans-serif;
-            --font-mono: 'JetBrains Mono', monospace;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: var(--font-sans);
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-        }
-
-        .app-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 1.5rem;
-        }
-
-        /* Header */
-        .nav-controls {
-            display: flex;
-            gap: 1rem;
-            margin: 0 1.5rem;
-        }
-
-        .nav-btn {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            background: rgba(99, 102, 241, 0.1);
-            border: 1px solid var(--accent-primary);
-            border-radius: 0.75rem;
-            color: var(--text-primary);
-            font-weight: 600;
-            font-size: 0.9rem;
-            text-decoration: none;
-            transition: all 0.3s ease;
-        }
-
-        .nav-btn:hover {
-            background: rgba(99, 102, 241, 0.2);
-            box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
-            transform: translateY(-2px);
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem 0;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 1.5rem;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .logo h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #6366f1, #a855f7);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .logo .tagline {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-        }
-
-        .status-box {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--signal-buy);
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.5;
-            }
-        }
-
-        /* Asset Navigation */
-        .asset-nav {
-            display: flex;
-            gap: 0.75rem;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-        }
-
-        .asset-btn {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1.25rem;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 0.75rem;
-            color: var(--text-primary);
-            font-size: 0.9rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .asset-btn:hover {
-            border-color: var(--accent-primary);
-            background: rgba(99, 102, 241, 0.1);
-        }
-
-        .asset-btn.active {
-            border-color: var(--accent-primary);
-            background: rgba(99, 102, 241, 0.15);
-            box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
-        }
-
-        .asset-btn .icon {
-            font-size: 1.25rem;
-        }
-
-        .asset-btn .ticker {
-            font-family: var(--font-mono);
-            font-size: 0.75rem;
-            color: var(--text-muted);
-        }
-
-        /* Main Layout */
-        .main-grid {
-            display: grid;
-            grid-template-columns: 1fr 320px;
-            gap: 1.5rem;
-        }
-
-        /* Chart Container */
-        .chart-section {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 1rem;
-            overflow: hidden;
-        }
-
-        .chart-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .chart-title {
-            font-size: 1rem;
-            font-weight: 600;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .chart-legend {
-            display: flex;
-            gap: 1rem;
-            font-size: 0.75rem;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 0.35rem;
-            color: var(--text-muted);
-        }
-
-        .legend-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-        }
-
-        .legend-dot.log-return {
-            background: #9ca3af;
-        }
-
-        .legend-dot.bullish {
-            background: var(--signal-buy);
-        }
-
-        .legend-dot.bearish {
-            background: var(--signal-sell);
-        }
-
-        #anomalyChart {
-            width: 100%;
-            height: 500px;
-        }
-
-        /* Alert Panel */
-        .alert-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .alert-card {
-            background: var(--bg-card);
-            border: 2px solid var(--border-color);
-            border-radius: 1rem;
-            padding: 1.25rem;
-            transition: all 0.3s;
-        }
-
-        .alert-card.bullish {
-            border-color: var(--signal-buy);
-            box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
-        }
-
-        .alert-card.bearish {
-            border-color: var(--signal-sell);
-            box-shadow: 0 0 20px rgba(239, 68, 68, 0.15);
-        }
-
-        .alert-card.neutral {
-            border-color: var(--text-muted);
-        }
-
-        .alert-header {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: var(--text-muted);
-            margin-bottom: 0.75rem;
-        }
-
-        .alert-time {
-            font-size: 1.5rem;
-            font-weight: 700;
-            font-family: var(--font-mono);
-            margin-bottom: 0.5rem;
-        }
-
-        .alert-zscore {
-            font-size: 0.9rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .alert-zscore span {
-            font-family: var(--font-mono);
-            font-weight: 600;
-        }
-
-        .alert-status {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            font-weight: 700;
-            font-size: 0.875rem;
-            text-transform: uppercase;
-        }
-
-        .alert-status.bullish {
-            background: rgba(16, 185, 129, 0.2);
-            color: var(--signal-buy);
-        }
-
-        .alert-status.bearish {
-            background: rgba(239, 68, 68, 0.2);
-            color: var(--signal-sell);
-        }
-
-        .alert-status.neutral {
-            background: rgba(107, 114, 128, 0.2);
-            color: var(--text-muted);
-        }
-
-        /* Stats Cards */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.75rem;
-        }
-
-        .stat-card {
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 0.75rem;
-            padding: 1rem;
-        }
-
-        .stat-label {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.25rem;
-        }
-
-        .stat-value {
-            font-size: 1rem;
-            font-weight: 600;
-            font-family: var(--font-mono);
-        }
-
-        .stat-value.positive {
-            color: var(--signal-buy);
-        }
-
-        .stat-value.negative {
-            color: var(--signal-sell);
-        }
-
-        /* Trade Setup */
-        .trade-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 1rem;
-            padding: 1.25rem;
-        }
-
-        .trade-card-header {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: var(--text-muted);
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .trade-levels {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .level-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.75rem;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 0.5rem;
-            border-left: 3px solid transparent;
-        }
-
-        .level-row.entry {
-            border-left-color: var(--accent-primary);
-        }
-
-        .level-row.sl {
-            border-left-color: var(--signal-sell);
-        }
-
-        .level-row.tp {
-            border-left-color: var(--signal-buy);
-        }
-
-        .level-label {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-        }
-
-        .level-value {
-            font-family: var(--font-mono);
-            font-weight: 600;
-        }
-
-        /* Anomaly History */
-        .history-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 1rem;
-            padding: 1.25rem;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .history-header {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: var(--text-muted);
-            margin-bottom: 1rem;
-        }
-
-        .history-list {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .history-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.5rem;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 0.5rem;
-            font-size: 0.8rem;
-        }
-
-        .history-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-
-        .history-dot.bullish {
-            background: var(--signal-buy);
-        }
-
-        .history-dot.bearish {
-            background: var(--signal-sell);
-        }
-
-        .history-time {
-            font-family: var(--font-mono);
-            color: var(--signal-watch);
-            font-size: 0.7rem;
-            background: rgba(234, 179, 8, 0.2);
-            padding: 2px 6px;
-            border-radius: 4px;
-        }
-
-        .history-zscore {
-            font-family: var(--font-mono);
-            margin-left: auto;
-        }
-
-        /* Responsive */
-        @media (max-width: 1024px) {
-            .main-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .alert-panel {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 640px) {
-            .alert-panel {
-                grid-template-columns: 1fr;
-            }
-
-            .asset-nav {
-                flex-direction: column;
-            }
-        }
-    </style>
 </head>
 
 <body>
@@ -508,131 +25,117 @@
         <!-- Header -->
         <header class="header">
             <div class="logo">
-                <h1>Yield Anomaly | Charts</h1>
+                <span class="logo-text">YIELD_ANOMALY_ENGINE</span>
             </div>
-            <div class="nav-controls">
-                <a href="/" class="nav-btn">Back to Dashboard</a>
-            </div>
-            <div class="status-box">
-                <span id="lastUpdate">Connecting...</span>
+
+            <nav class="nav-links">
+                <a href="/" class="nav-link">DASHBOARD</a>
+                <a href="/chart" class="nav-link active">CHART_VIEW</a>
+            </nav>
+
+            <div class="status-indicator">
+                <div class="status-dot ok"></div>
+                <span class="status-text mono" id="statusText">SYSTEM_ONLINE</span>
             </div>
         </header>
 
         <!-- Asset Navigation -->
-        <nav class="asset-nav">
-            <button class="asset-btn active" data-ticker="NDX">NASDAQ 100</button>
-            <button class="asset-btn" data-ticker="XAU">Gold (XAU)</button>
-            <button class="asset-btn" data-ticker="SPX">S&P 500</button>
-            <button class="asset-btn" data-ticker="BTC">Bitcoin</button>
-        </nav>
+        <div class="asset-tabs">
+            <button class="asset-tab active" data-ticker="NDX">NASDAQ_100</button>
+            <button class="asset-tab" data-ticker="XAU">GOLD_XAU</button>
+            <button class="asset-tab" data-ticker="SPX">S&P_500</button>
+            <button class="asset-tab" data-ticker="BTC">BITCOIN</button>
+        </div>
 
         <!-- Main Grid -->
-        <div class="main-grid">
+        <main class="dashboard-grid">
             <!-- Chart Section -->
-            <div class="chart-section">
-                <div class="chart-header">
-                    <span class="chart-title" id="chartTitle">QUANT ANOMALIES | ^NDX</span>
+            <section class="chart-card" style="grid-column: span 2;">
+                <div class="card-header">
+                    <h3 class="card-title" id="chartTitle">QUANT_ANOMALIES | ^NDX</h3>
                     <div class="chart-legend">
-                        <div class="legend-item">
-                            <span class="legend-dot log-return" style="background:#1f77b4"></span>
-                            <span>Log Return</span>
-                        </div>
-                        <div class="legend-item">
-                            <span class="legend-dot bullish" style="background:#2ca02c"></span>
-                            <span>Confirmed Anomaly (Bullish)</span>
-                        </div>
-                        <div class="legend-item">
-                            <span class="legend-dot bearish" style="background:#d62728"></span>
-                            <span>Confirmed Anomaly (Bearish)</span>
-                        </div>
+                        <span class="legend-item"><span class="dot" style="background:#22d3ee"></span>LOG_RETURN</span>
+                        <span class="legend-item"><span class="dot" style="background:#22c55e"></span>BULL_SIGNAL</span>
+                        <span class="legend-item"><span class="dot" style="background:#ef4444"></span>BEAR_SIGNAL</span>
                     </div>
                 </div>
-                <div id="anomalyChart"></div>
-            </div>
+                <div class="chart-container" id="anomalyChart" style="height: 500px;"></div>
+            </section>
 
-            <!-- Alert Panel -->
-            <div class="alert-panel">
-                <!-- Last Alert Card -->
-                <div class="alert-card neutral" id="alertCard">
-                    <div class="alert-header">LAST ANOMALY</div>
-                    <div class="alert-time" id="alertTime">--:-- NY</div>
-                    <div class="alert-zscore">Z-Score: <span id="alertZScore">--</span></div>
-                    <div class="alert-status neutral" id="alertStatus">NO SIGNAL</div>
-                </div>
-
-                <!-- Quick Stats -->
-                <div class="trade-card">
-                    <div class="trade-card-header">📊 Current Analysis</div>
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-label">Current Price</div>
-                            <div class="stat-value" id="currentPrice">--</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Z-Score</div>
-                            <div class="stat-value" id="currentZScore">--</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Log Return</div>
-                            <div class="stat-value" id="currentLogReturn">--</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">ATR</div>
-                            <div class="stat-value" id="currentATR">--</div>
+            <!-- Sidebar: Stats & Alerts -->
+            <aside class="sidebar-col">
+                <!-- Last Alert -->
+                <div class="signal-card" id="alertCard">
+                    <div class="card-header">
+                        <span class="card-title">LATEST_ANOMALY</span>
+                    </div>
+                    <div class="signal-content">
+                        <div class="signal-main" id="alertStatus">NO_SIGNAL</div>
+                        <div class="signal-meta">
+                            <div class="meta-row">
+                                <span>TIME_NY:</span>
+                                <span class="mono" id="alertTime">--:--</span>
+                            </div>
+                            <div class="meta-row">
+                                <span>Z_SCORE:</span>
+                                <span class="mono" id="alertZScore">--</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Trade Setup -->
-                <div class="trade-card" id="tradeSetupCard" style="display: none;">
-                    <div class="trade-card-header">🎯 Trade Setup</div>
-                    <div class="trade-levels">
-                        <div class="level-row entry">
-                            <span class="level-label">📍 Entry</span>
-                            <span class="level-value" id="tradeEntry">--</span>
+                <!-- Live Metrics -->
+                <div class="report-card">
+                    <h3 class="card-title">LIVE_METRICS</h3>
+                    <div class="report-grid">
+                        <div class="report-item">
+                            <span class="report-label">PRICE</span>
+                            <span class="report-value mono" id="currentPrice">--</span>
                         </div>
-                        <div class="level-row sl">
-                            <span class="level-label">🛑 Stop Loss</span>
-                            <span class="level-value" id="tradeSL">--</span>
+                        <div class="report-item">
+                            <span class="report-label">Z_SCORE</span>
+                            <span class="report-value mono" id="currentZScore">--</span>
                         </div>
-                        <div class="level-row tp">
-                            <span class="level-label">🎯 TP1</span>
-                            <span class="level-value" id="tradeTP1">--</span>
+                        <div class="report-item">
+                            <span class="report-label">LOG_RET</span>
+                            <span class="report-value mono" id="currentLogReturn">--</span>
                         </div>
-                        <div class="level-row tp">
-                            <span class="level-label">🎯 TP2</span>
-                            <span class="level-value" id="tradeTP2">--</span>
+                        <div class="report-item">
+                            <span class="report-label">ATR</span>
+                            <span class="report-value mono" id="currentATR">--</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Anomaly History -->
-                <div class="history-card">
-                    <div class="history-header">📋 Anomaly History</div>
-                    <div class="history-list" id="historyList">
-                        <div class="history-item">
-                            <span style="color: var(--text-muted)">Loading...</span>
-                        </div>
+                <!-- Anomaly History List -->
+                <div class="report-card">
+                    <h3 class="card-title">EVENT_LOG</h3>
+                    <div class="history-list" id="historyList" style="max-height: 200px; overflow-y: auto;">
+                        <div class="history-item mono" style="color: var(--text-gray);">LOADING_DATA...</div>
                     </div>
                 </div>
-            </div>
-        </div>
+            </aside>
+        </main>
     </div>
 
+    <!-- Script -->
     <script>
         // Configuration
         const API_BASE = 'http://localhost:5001/api';
-        const REFRESH_INTERVAL = 30000; // 30 seconds
+        const REFRESH_INTERVAL = 5000; // 5 seconds
         const Z_THRESHOLD = 2.0;
 
         // State
         let currentTicker = 'NDX';
         let chart = null;
+        // Global series references
         let lineSeries = null;
-        let anomalySeries = null;
-        let markers = [];
+        let meanSeries = null;
+        let upperBandSeries = null;
+        let lowerBandSeries = null;
+        let anomalyLineSeries = null;
 
-        // Initialize
+        // Init
         document.addEventListener('DOMContentLoaded', () => {
             initChart();
             setupAssetButtons();
@@ -642,66 +145,94 @@
 
         function initChart() {
             const container = document.getElementById('anomalyChart');
+
+            // Create Chart with Dark/Terminal Theme
             chart = LightweightCharts.createChart(container, {
                 width: container.clientWidth,
                 height: 500,
                 layout: {
-                    background: { type: 'solid', color: '#ffffff' },
-                    textColor: '#1f1f1f',
+                    background: { type: 'solid', color: '#000000' },
+                    textColor: '#9ca3af', // Gray-400
+                    fontFamily: 'JetBrains Mono',
                 },
                 grid: {
-                    vertLines: { color: 'rgba(50, 50, 50, 0.1)' },
-                    horzLines: { color: 'rgba(50, 50, 50, 0.1)' },
+                    vertLines: { color: '#111827' }, // Very dark gray
+                    horzLines: { color: '#111827' },
                 },
                 crosshair: {
                     mode: LightweightCharts.CrosshairMode.Normal,
+                    vertLine: { color: '#4b5563', style: 2 },
+                    horzLine: { color: '#4b5563', style: 2 },
                 },
-                rightPriceScale: {
-                    borderColor: 'rgba(0, 0, 0, 0.2)',
-                },
+                rightPriceScale: { borderColor: '#374151' },
                 timeScale: {
-                    borderColor: 'rgba(0, 0, 0, 0.2)',
+                    borderColor: '#374151',
                     timeVisible: true,
                     secondsVisible: false,
                 },
             });
 
-            // v3.8.0 API
+            // 1. Log Return Series (The noisy white/gray line)
             lineSeries = chart.addLineSeries({
-                color: '#1f77b4', // Matplotlib Blue
-                lineWidth: 2,
-                crosshairMarkerVisible: true,
-                crosshairMarkerRadius: 4,
-                priceFormat: {
-                    type: 'price',
-                    precision: 6,
-                    minMove: 0.000001,
-                },
-            });
-
-            // Series connecting anomalies (Zig-Zag)
-            anomalySeries = chart.addLineSeries({
-                color: 'rgba(0, 0, 0, 0.5)',
+                color: '#e5e7eb', // Gray-200 (White-ish)
                 lineWidth: 1,
-                lineStyle: 0, // Solid
-                crosshairMarkerVisible: false,
-                priceFormat: {
-                    type: 'price',
-                    precision: 6,
-                    minMove: 0.000001,
-                },
+                title: 'Log Return',
+                crosshairMarkerVisible: true,
+                priceFormat: { type: 'price', precision: 6, minMove: 0.000001 },
             });
 
-            // Resize handler
-            window.addEventListener('resize', () => {
-                chart.applyOptions({ width: container.clientWidth });
+            // 2. Mean Series (Cyan Dashed)
+            meanSeries = chart.addLineSeries({
+                color: '#06b6d4', // Cyan-500
+                lineWidth: 1,
+                lineStyle: 1, // Dashed
+                title: 'Mean',
+                crosshairMarkerVisible: false,
+                priceFormat: { type: 'price', precision: 6, minMove: 0.000001 },
             });
+
+            // 3. Upper Band (+2σ, Red Dotted)
+            upperBandSeries = chart.addLineSeries({
+                color: '#ef4444', // Red-500
+                lineWidth: 1,
+                lineStyle: 2, // Dotted
+                title: '+2σ Band',
+                crosshairMarkerVisible: false,
+                priceFormat: { type: 'price', precision: 6, minMove: 0.000001 },
+            });
+
+            // 4. Lower Band (-2σ, Green Dotted)
+            lowerBandSeries = chart.addLineSeries({
+                color: '#22c55e', // Green-500
+                lineWidth: 1,
+                lineStyle: 2, // Dotted
+                title: '-2σ Band',
+                crosshairMarkerVisible: false,
+                priceFormat: { type: 'price', precision: 6, minMove: 0.000001 },
+            });
+
+            // 5. Anomaly Connection Line (The "Trend" of anomalies)
+            anomalyLineSeries = chart.addLineSeries({
+                color: '#f59e0b', // Amber-500
+                lineWidth: 1,
+                title: 'Anomaly Trend',
+                crosshairMarkerVisible: false,
+                priceFormat: { type: 'price', precision: 6, minMove: 0.000001 },
+            });
+
+            // Resize Observer
+            const resizeObserver = new ResizeObserver(entries => {
+                if (entries.length === 0 || entries[0].target !== container) { return; }
+                const newRect = entries[0].contentRect;
+                chart.applyOptions({ width: newRect.width });
+            });
+            resizeObserver.observe(container);
         }
 
         function setupAssetButtons() {
-            document.querySelectorAll('.asset-btn').forEach(btn => {
+            document.querySelectorAll('.asset-tab').forEach(btn => {
                 btn.addEventListener('click', () => {
-                    document.querySelectorAll('.asset-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.asset-tab').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
                     currentTicker = btn.dataset.ticker;
                     loadData(currentTicker);
@@ -711,6 +242,9 @@
 
         async function loadData(ticker) {
             try {
+                // Ensure chart title matches
+                document.getElementById('chartTitle').textContent = `QUANT_ANOMALIES | ${ticker}`;
+
                 const [analysisRes, chartRes] = await Promise.all([
                     fetch(`${API_BASE}/analyze/${ticker}`),
                     fetch(`${API_BASE}/chart-data/${ticker}?limit=200`)
@@ -721,21 +255,16 @@
 
                 if (analysis.success && chartData.success) {
                     updateChart(chartData.data);
-                    updateUI(analysis.data);
-                    document.getElementById('lastUpdate').textContent =
-                        `Updated: ${new Date().toLocaleTimeString()}`;
+                    updateStats(analysis.data);
                 }
             } catch (error) {
                 console.error('Error:', error);
+                document.getElementById('statusText').textContent = 'CONNECTION_ERR';
+                document.querySelector('.status-dot').className = 'status-dot error';
             }
         }
 
         function updateChart(data) {
-            // Update title
-            document.getElementById('chartTitle').textContent =
-                `QUANT ANOMALIES | ${data.ticker}`;
-
-            // Prepare line data
             const lineData = data.labels.map((label, i) => ({
                 time: parseTime(label),
                 value: data.log_returns[i]
@@ -743,147 +272,105 @@
 
             lineSeries.setData(lineData);
 
-            // Find anomalies and create markers
-            markers = [];
+            // Markers for anomalies
+            const markers = [];
             const anomalies = [];
-            const anomalyPoints = []; // For connecting line
 
             data.z_scores.forEach((z, i) => {
                 if (Math.abs(z) >= Z_THRESHOLD) {
                     const isBullish = z < -Z_THRESHOLD;
                     const time = lineData[i].time;
-                    const val = data.log_returns[i];
 
-                    const marker = {
+                    markers.push({
                         time: time,
                         position: isBullish ? 'belowBar' : 'aboveBar',
-                        color: isBullish ? '#2ca02c' : '#d62728', // Matplotlib Green/Red
-                        shape: 'circle',
-                        text: extractTime(data.labels[i]),
-                        size: 6, // Larger dots as per image
-                    };
-                    markers.push(marker);
+                        color: isBullish ? '#22c55e' : '#ef4444', // Green-500 : Red-500
+                        shape: isBullish ? 'arrowUp' : 'arrowDown',
+                        text: isBullish ? 'BUY' : 'SELL',
+                        size: 2,
+                    });
 
                     anomalies.push({
                         time: data.labels[i],
                         zScore: z,
                         isBullish,
-                        logReturn: val
+                        price: data.prices ? data.prices[i] : 0
                     });
-
-                    anomalyPoints.push({ time: time, value: val });
                 }
             });
 
-            // Set anomaly line data (connects the dots)
-            if (anomalySeries) {
-                anomalySeries.setData(anomalyPoints);
-            }
-
             lineSeries.setMarkers(markers);
+            updateHistoryList(anomalies);
 
-            // ... rest of function
-
-            // Update history
-            updateHistory(anomalies);
-
-            // Update last alert
+            // Check for last alert
             if (anomalies.length > 0) {
                 const last = anomalies[anomalies.length - 1];
-                updateAlert(last);
+                updateAlertCard(last);
             }
         }
 
-        function updateUI(data) {
-            // Current stats
-            document.getElementById('currentPrice').textContent =
-                `$${data.price.current.toLocaleString()}`;
+        function updateStats(data) {
+            document.getElementById('currentPrice').textContent = data.price.current.toFixed(2);
 
-            const zScore = data.analysis.z_score;
-            const zScoreEl = document.getElementById('currentZScore');
-            if (zScore !== null) {
-                zScoreEl.textContent = zScore.toFixed(3);
-                zScoreEl.className = `stat-value ${zScore < -Z_THRESHOLD ? 'positive' : zScore > Z_THRESHOLD ? 'negative' : ''}`;
-            }
+            // Z-Score Color
+            const z = data.analysis.z_score;
+            const zEl = document.getElementById('currentZScore');
+            zEl.textContent = z ? z.toFixed(3) : '--';
+            zEl.style.color = Math.abs(z) > 2 ? (z < 0 ? '#22c55e' : '#ef4444') : '#9ca3af';
 
-            const logReturn = data.analysis.log_return;
-            const logReturnEl = document.getElementById('currentLogReturn');
-            if (logReturn !== null) {
-                logReturnEl.textContent = logReturn.toFixed(6);
-                logReturnEl.className = `stat-value ${logReturn >= 0 ? 'positive' : 'negative'}`;
-            }
+            // Log Return
+            const r = data.analysis.log_return;
+            const rEl = document.getElementById('currentLogReturn');
+            rEl.textContent = r ? r.toFixed(6) : '--';
 
-            if (data.analysis.atr !== null) {
-                document.getElementById('currentATR').textContent =
-                    `${data.analysis.atr.toFixed(2)} (${data.analysis.atr_percent.toFixed(2)}%)`;
-            }
-
-            // Trade setup
-            if (data.trade_setup) {
-                document.getElementById('tradeSetupCard').style.display = 'block';
-                document.getElementById('tradeEntry').textContent =
-                    `$${data.trade_setup.entry_price.toLocaleString()}`;
-                document.getElementById('tradeSL').textContent =
-                    `$${data.trade_setup.stop_loss.toLocaleString()}`;
-                document.getElementById('tradeTP1').textContent =
-                    `$${data.trade_setup.take_profit.tp1.price.toLocaleString()}`;
-                document.getElementById('tradeTP2').textContent =
-                    `$${data.trade_setup.take_profit.tp2.price.toLocaleString()}`;
-            } else {
-                document.getElementById('tradeSetupCard').style.display = 'none';
+            // ATR
+            if (data.analysis.atr) {
+                document.getElementById('currentATR').textContent = data.analysis.atr.toFixed(2);
             }
         }
 
-        function updateAlert(anomaly) {
+        function updateAlertCard(anomaly) {
             const card = document.getElementById('alertCard');
-            const isBullish = anomaly.isBullish;
-
-            card.className = `alert-card ${isBullish ? 'bullish' : 'bearish'}`;
-            document.getElementById('alertTime').textContent =
-                `${extractTime(anomaly.time)} NY`;
-            document.getElementById('alertZScore').textContent =
-                anomaly.zScore.toFixed(2);
-
             const status = document.getElementById('alertStatus');
-            status.textContent = isBullish ? 'BULLISH IMPULSE' : 'BEARISH IMPULSE';
-            status.className = `alert-status ${isBullish ? 'bullish' : 'bearish'}`;
+            const timeEl = document.getElementById('alertTime');
+            const zEl = document.getElementById('alertZScore');
+
+            const isBullish = anomaly.isBullish;
+            status.textContent = isBullish ? 'BULLISH_IMPULSE' : 'BEARISH_IMPULSE';
+            status.style.color = isBullish ? '#22c55e' : '#ef4444';
+
+            const date = new Date(anomaly.time);
+            timeEl.textContent = date.toLocaleTimeString('en-US', { hour12: false });
+            zEl.textContent = anomaly.zScore.toFixed(2);
         }
 
-        function updateHistory(anomalies) {
+        function updateHistoryList(anomalies) {
             const list = document.getElementById('historyList');
-            if (anomalies.length === 0) {
-                list.innerHTML = '<div class="history-item"><span style="color: var(--text-muted)">No anomalies detected</span></div>';
-                return;
-            }
+            list.innerHTML = '';
 
-            // Show last 10 anomalies, newest first
-            const recent = anomalies.slice(-10).reverse();
-            list.innerHTML = recent.map(a => `
-                <div class="history-item">
-                    <span class="history-dot ${a.isBullish ? 'bullish' : 'bearish'}"></span>
-                    <span class="history-time">${extractTime(a.time)}</span>
-                    <span>${a.isBullish ? 'BUY' : 'SELL'}</span>
-                    <span class="history-zscore">${a.zScore.toFixed(2)}</span>
-                </div>
-            `).join('');
+            // Show last 10 reversed
+            anomalies.slice(-10).reverse().forEach(a => {
+                const div = document.createElement('div');
+                div.className = 'history-item mono';
+                div.style.display = 'flex';
+                div.style.justifyContent = 'space-between';
+                div.style.marginBottom = '5px';
+
+                const timeStr = new Date(a.time).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+                const type = a.isBullish ? 'BUY' : 'SELL';
+                const color = a.isBullish ? '#22c55e' : '#ef4444';
+
+                div.innerHTML = `
+                    <span style="color:${color}">${type}</span>
+                    <span>${a.zScore.toFixed(2)}</span>
+                    <span style="color:#6b7280">${timeStr}</span>
+                `;
+                list.appendChild(div);
+            });
         }
 
-        // Helpers
-        function parseTime(label) {
-            // Parse "MM/DD HH:MM" format to Unix timestamp
-            const [datePart, timePart] = label.split(' ');
-            const [month, day] = datePart.split('/');
-            const [hour, minute] = timePart.split(':');
-            const now = new Date();
-            const date = new Date(now.getFullYear(), parseInt(month) - 1, parseInt(day),
-                parseInt(hour), parseInt(minute));
-            return Math.floor(date.getTime() / 1000);
-        }
-
-        function extractTime(label) {
-            // Extract time portion "HH:MM" from label
-            const parts = label.split(' ');
-            return parts.length > 1 ? parts[1] : label;
+        function parseTime(timeStr) {
+            return new Date(timeStr).getTime() / 1000;
         }
     </script>
 </body>
