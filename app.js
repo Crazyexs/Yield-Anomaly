@@ -5,7 +5,7 @@
  */
 
 // Configuration
-const API_BASE = 'http://localhost:5001/api';
+const API_BASE = '/api';
 const REFRESH_INTERVAL = 30000; // 30 seconds
 
 // State
