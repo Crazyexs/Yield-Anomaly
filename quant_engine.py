@@ -20,7 +20,7 @@ import requests
 import json
 import time
 from datetime import datetime
-from typing import Dict, Any, Optional, Tuple, List
+from typing import Dict, Any, Optional, Tuple, List, Union
 
 
 class YieldAnomalyTrader:
@@ -321,6 +321,11 @@ class YieldAnomalyTrader:
         if not self.discord_webhook_url:
             return
 
+        # Handle multiple webhooks
+        webhooks = self.discord_webhook_url
+        if isinstance(webhooks, str):
+            webhooks = [webhooks]
+
         # Colors: Green (5763719) for Long, Red (15158332) for Short
         color = 5763719 if anomaly['direction'] == 'LONG' else 15158332
         
@@ -361,12 +366,24 @@ class YieldAnomalyTrader:
             "thumbnail": {"url": "https://cdn-icons-png.flaticon.com/512/3310/3310624.png" if anomaly['direction'] == 'SHORT' else "https://cdn-icons-png.flaticon.com/512/3310/3310645.png"}
         }
         
-        payload = {"embeds": [embed]}
+        payload = {
+            "content": "⚠️ Signal Alert <@732560547345858570>",
+            "embeds": [embed]
+        }
         
-        try:
-            requests.post(self.discord_webhook_url, json=payload, timeout=3)
-        except Exception as e:
-            print(f"Failed to send Discord alert: {e}")
+        success_count = 0
+        for url in webhooks:
+            try:
+                # Clean URL and send
+                clean_url = url.strip()
+                if clean_url:
+                    requests.post(clean_url, json=payload, timeout=3)
+                    success_count += 1
+            except Exception as e:
+                print(f"Failed to send Discord alert to webhook: {e}")
+                
+        if success_count > 0:
+            print(f"Alert sent to {success_count} webhook(s)")
     
     def analyze(self, ticker: str) -> Dict[str, Any]:
         """Perform complete trading analysis."""
