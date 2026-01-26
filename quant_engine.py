@@ -19,6 +19,7 @@ import pandas as pd
 import requests
 import json
 import time
+import os
 from datetime import datetime
 from typing import Dict, Any, Optional, Tuple, List, Union
 
@@ -78,6 +79,24 @@ class YieldAnomalyTrader:
         self.account_balance = account_balance
         self.discord_webhook_url = discord_webhook_url
         self.alert_history = {} # {ticker: last_alert_timestamp_str}
+        self.load_alert_history()
+    
+    def load_alert_history(self):
+        """Load alert history from disk."""
+        try:
+            if os.path.exists('alert_history.json'):
+                with open('alert_history.json', 'r') as f:
+                    self.alert_history = json.load(f)
+        except Exception as e:
+            print(f"Error loading alert history: {e}")
+
+    def save_alert_history(self):
+        """Save alert history to disk."""
+        try:
+            with open('alert_history.json', 'w') as f:
+                json.dump(self.alert_history, f)
+        except Exception as e:
+            print(f"Error saving alert history: {e}")
     
     def fetch_data(self, ticker: str) -> Tuple[pd.DataFrame, str]:
         """Fetch OHLCV data from Yahoo Finance."""
@@ -400,13 +419,25 @@ class YieldAnomalyTrader:
         
         signal = self.get_signal(z_score)
         trade_setup = self.generate_trade_setup(latest, prev, atr, resolved)
-        anomalies = self.find_anomalies(df.tail(50))  # Last 50 candles
+        
+        # Use a specific slice for anomaly detection to ensure consistency
+        recent_df = df.tail(50)
+        anomalies = self.find_anomalies(recent_df)  # Last 50 candles
         
         # Check for alerts on Confirmed Anomalies
         if self.discord_webhook_url and anomalies:
             latest_anomaly = anomalies[-1]
-            # Alert conditions: Confirmed AND Strong Signal (Z > 2.0 or < -2.0)
-            if latest_anomaly.get('confirmed') and abs(latest_anomaly['z_score']) >= self.z_threshold:
+            slice_len = len(recent_df)
+            
+            # Freshness Check: Only alert if anomaly is recent (last 2 candles of the slice)
+            # This prevents alerting on old signals when switching charts or restarting
+            is_fresh = latest_anomaly['index'] >= slice_len - 2
+            
+            # Alert conditions: Confirmed AND Strong Signal (Z > 2.0 or < -2.0) AND Fresh
+            if (latest_anomaly.get('confirmed') and 
+                abs(latest_anomaly['z_score']) >= self.z_threshold and 
+                is_fresh):
+                
                 last_alert_time = self.alert_history.get(resolved)
                 
                 if last_alert_time != latest_anomaly['time']:
@@ -417,6 +448,7 @@ class YieldAnomalyTrader:
                         float(latest['Close'])
                     )
                     self.alert_history[resolved] = latest_anomaly['time']
+                    self.save_alert_history()
         
         return {
             "timestamp": datetime.now().isoformat(),
