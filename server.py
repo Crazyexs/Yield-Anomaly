@@ -1,6 +1,6 @@
 """
-Yield Anomaly Detection - Flask API Server (Pro Edition)
-=========================================================
+Yield Anomaly Detection - Flask API Server
+===========================================
 RESTful API serving quantitative analysis data with trade setup.
 """
 

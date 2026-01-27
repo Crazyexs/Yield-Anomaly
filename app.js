@@ -1,6 +1,6 @@
 /**
- * Yield Anomaly Detection - Frontend Application (Pro Edition)
- * =============================================================
+ * Yield Anomaly Detection - Frontend Application
+ * ==============================================
  * Handles API communication, chart rendering, trade setup display
  */
 

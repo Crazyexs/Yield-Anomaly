@@ -1,16 +1,12 @@
 """
-Yield Anomaly Detection Engine - TRADING STRATEGY EDITION
-==========================================================
-Professional mean reversion trading strategy using:
+Yield Anomaly Detection Engine
+==============================
+Mean reversion trading strategy using:
 - Log Returns & Z-Score for anomaly detection
-- Candle confirmation (no catching falling knives)
+- Candle confirmation
 - Entry triggers at anomaly candle high/low breakout
 - Stop loss at anomaly candle extreme
 - Take profit when Z-Score returns to mean (0)
-
-Strategy:
-  LONG: Z < -2.0, wait for confirmation, entry above anomaly high
-  SHORT: Z > +2.0, wait for confirmation, entry below anomaly low
 """
 
 import yfinance as yf
@@ -20,6 +16,7 @@ import requests
 import json
 import time
 import os
+import pytz
 from datetime import datetime
 from typing import Dict, Any, Optional, Tuple, List, Union
 
@@ -99,15 +96,22 @@ class YieldAnomalyTrader:
             print(f"Error saving alert history: {e}")
     
     def fetch_data(self, ticker: str) -> Tuple[pd.DataFrame, str]:
-        """Fetch OHLCV data from Yahoo Finance."""
+        """Fetch OHLCV data from Yahoo Finance and standardize timezone."""
         resolved = self.ASSET_MAPPING.get(ticker.upper(), ticker)
         df = yf.download(resolved, period=self.period, interval=self.interval, progress=False)
         
         if df.empty:
             raise ValueError(f"No data for {ticker}")
         
+        # Handle MultiIndex columns if present
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
+            
+        # Standardize Timezone to Asia/Bangkok (UTC+7)
+        target_tz = pytz.timezone('Asia/Bangkok')
+        if df.index.tz is None:
+            df.index = df.index.tz_localize(pytz.utc)
+        df.index = df.index.tz_convert(target_tz)
         
         return df, resolved
     
@@ -247,12 +251,12 @@ class YieldAnomalyTrader:
                 # For long: check if current candle is green
                 is_green = latest['Close'] > latest['Open']
                 is_confirmed = is_green
-                confirmation_msg = "✅ CONFIRMED - Green candle" if is_green else "⏳ WAIT for green candle"
+                confirmation_msg = "CONFIRMED - Green candle" if is_green else "WAIT for green candle"
             else:
                 # For short: check if current candle is red
                 is_red = latest['Close'] < latest['Open']
                 is_confirmed = is_red
-                confirmation_msg = "✅ CONFIRMED - Red candle" if is_red else "⏳ WAIT for red candle"
+                confirmation_msg = "CONFIRMED - Red candle" if is_red else "WAIT for red candle"
         
         return {
             "direction": direction,
@@ -296,42 +300,42 @@ class YieldAnomalyTrader:
             return {
                 "signal": "STRONG_BUY",
                 "action": "BUY_STOP",
-                "description": f"🟢 OVERSOLD ANOMALY (Z={z_score:.2f}) - Wait for confirmation",
+                "description": f"OVERSOLD ANOMALY (Z={z_score:.2f}) - Wait for confirmation",
                 "severity": "critical_long"
             }
         elif z_score >= self.z_critical:
             return {
                 "signal": "STRONG_SELL",
                 "action": "SELL_STOP",
-                "description": f"🔴 OVERBOUGHT ANOMALY (Z={z_score:.2f}) - Wait for confirmation",
+                "description": f"OVERBOUGHT ANOMALY (Z={z_score:.2f}) - Wait for confirmation",
                 "severity": "critical_short"
             }
         elif z_score <= -self.z_threshold:
             return {
                 "signal": "BUY",
                 "action": "BUY_STOP",
-                "description": f"📈 Oversold Zone (Z={z_score:.2f}) - Watch for entry",
+                "description": f"Oversold Zone (Z={z_score:.2f}) - Watch for entry",
                 "severity": "long"
             }
         elif z_score >= self.z_threshold:
             return {
                 "signal": "SELL",
                 "action": "SELL_STOP",
-                "description": f"📉 Overbought Zone (Z={z_score:.2f}) - Watch for entry",
+                "description": f"Overbought Zone (Z={z_score:.2f}) - Watch for entry",
                 "severity": "short"
             }
         elif z_abs >= 1.5:
             return {
                 "signal": "WATCH",
                 "action": "WAIT",
-                "description": f"👁️ Approaching threshold (Z={z_score:.2f})",
+                "description": f"Approaching threshold (Z={z_score:.2f})",
                 "severity": "watch"
             }
         else:
             return {
                 "signal": "NEUTRAL",
                 "action": "WAIT",
-                "description": f"⚪ Normal range (Z={z_score:.2f})",
+                "description": f"Normal range (Z={z_score:.2f})",
                 "severity": "neutral"
             }
     
@@ -386,9 +390,8 @@ class YieldAnomalyTrader:
         }
         
         payload = {
-            "content": "Signal Alert\n"
-            "Quant Analysis Deverloped by <@732560547345858570>\n"
-            "Not financial advice na ja :> ",
+            "content": "Signal Alert - Yield Anomaly Engine\n"
+                       "Quantitative Analysis Signal",
             "embeds": [embed]
         }
         
@@ -522,7 +525,7 @@ class YieldAnomalyTrader:
 def print_trading_report(report: Dict) -> None:
     """Print a professional trading report."""
     print("\n" + "=" * 70)
-    print(f"  📊 QUANT TRADING SIGNAL: {report['asset_name']}")
+    print(f"  QUANT TRADING SIGNAL: {report['asset_name']}")
     print("=" * 70)
     print(f"  Ticker: {report['ticker']}  |  Time: {report['data_timestamp']}")
     print("-" * 70)
@@ -537,7 +540,7 @@ def print_trading_report(report: Dict) -> None:
     if report['trade_setup']:
         ts = report['trade_setup']
         print("-" * 70)
-        print(f"  🎯 TRADE SETUP: {ts['direction']}")
+        print(f"  TRADE SETUP: {ts['direction']}")
         print(f"  Status:           {ts['status']} - {ts['confirmation']}")
         print(f"  Entry:            {ts['entry_type']}")
         print(f"  Stop Loss:        ${ts['stop_loss']:,.2f} (-{ts['risk_management']['stop_distance_pct']}%)")
@@ -551,9 +554,9 @@ def print_trading_report(report: Dict) -> None:
     
     # Print recent anomalies
     if report.get('recent_anomalies'):
-        print("\n  📋 RECENT ANOMALIES:")
+        print("\n  RECENT ANOMALIES:")
         for a in report['recent_anomalies'][-5:]:
-            status = "✅" if a.get('confirmed') else "⏳"
+            status = "[CONFIRMED]" if a.get('confirmed') else "[WAIT]"
             print(f"    {status} {a['time'][:11]} | Z={a['z_score']:.2f} | {a['direction']} | Trigger: ${a.get('entry_trigger', 0):,.2f}")
     
     print()
@@ -576,7 +579,7 @@ if __name__ == "__main__":
     
     assets = ['NDX', 'XAU', 'SPX', 'BTC']
     
-    print("\n" + "🔬 YIELD ANOMALY TRADING ENGINE".center(70))
+    print("\n" + "YIELD ANOMALY TRADING ENGINE".center(70))
     print("=" * 70)
     print("  Strategy: Mean Reversion | Z-Score Anomalies | Candle Confirmation")
     print("=" * 70)
@@ -586,4 +589,4 @@ if __name__ == "__main__":
             report = trader.analyze(asset)
             print_trading_report(report)
         except Exception as e:
-            print(f"\n❌ Error analyzing {asset}: {str(e)}\n")
+            print(f"\nError analyzing {asset}: {str(e)}\n")

@@ -1,54 +1,69 @@
-# Yield Anomaly Detector 
+# Yield Anomaly Detector
 
-I built this tool because I wanted a mathematically grounded way to find trading setups, rather than just staring at charts all day.
+## Overview
 
-It's a **mean reversion** system that watches for "statistical glitches" in the market—moments where the price moves so aggressively that it's statistically likely to snap back (or at least pause).
+The Yield Anomaly Detector is a quantitative analysis tool designed to identify statistical anomalies in financial markets. By calculating real-time Z-Scores of log returns across multiple assets (NASDAQ 100, Gold, S&P 500, Bitcoin), the system detects overbought and oversold conditions based on mean reversion principles.
 
-## What it actually does
+The system features a Flask-based backend for data processing and a real-time web dashboard for visualization.
 
-1.  **Watches the Market**: It pulls live data for **Bitcoin**, **Gold**, **NASDAQ**, and **S&P 500**.
-2.  **Calculates Z-Scores**: It measures how "abnormal" the current price move is compared to the last 20 periods.
-3.  **Signals Anomalies**:
-    *   **Z-Score > 2.0**: Overbought. (Look for shorts).
-    *   **Z-Score < -2.0**: Oversold. (Look for longs).
-4.  **Validates Entries**: It doesn't just blindly buy. It waits for the next candle to confirm the reversal (e.g., a green candle after a crash) or a breakout of the anomaly candle.
+## Methodology
 
-## How to run it
+The core strategy relies on the statistical properties of asset returns:
 
-You need Python installed. If you have that, just do this:
+1.  **Log Returns**: Calculates the natural logarithm of price changes to normalize volatility.
+2.  **Rolling Statistics**: Computes the mean and standard deviation over a defined window (default: 20 periods).
+3.  **Z-Score Calculation**: Measures the distance of the current return from the historical mean in units of standard deviation.
+    *   $$Z = \frac{R_t - \mu}{\sigma}$$
+4.  **Anomaly Detection**: Signals are generated when the Z-Score exceeds defined thresholds (default: ±2.0σ), indicating a statistically significant deviation.
 
-1.  **Install dependencies**
+## Features
+
+*   **Real-time Analysis**: Fetches and processes live market data.
+*   **Web Dashboard**: Visualizes Z-Scores, Bollinger Bands, and price action.
+*   **Trade Setup Generation**: Automatically calculates entry, stop-loss, and take-profit levels based on ATR (Average True Range).
+*   **Discord Integration**: Sends alerts to configured webhooks upon confirming actionable signals.
+
+## Installation
+
+1.  **Clone the repository**:
+    ```bash
+    git clone <repository_url>
+    cd yield-anomaly
+    ```
+
+2.  **Set up a virtual environment**:
+    ```bash
+    python -m venv venv
+    source venv/bin/activate  # On Windows: venv\Scripts\activate
+    ```
+
+3.  **Install dependencies**:
     ```bash
     pip install -r requirements.txt
     ```
 
-2.  **Run the web server**
-    ```bash
-    python server.py
-    ```
+## Usage
 
-3.  **Open your browser**
-    Go to [http://localhost:5001](http://localhost:5001). You'll see the dashboard with live charts.
+### Web Dashboard
+Start the application server:
+```bash
+python server.py
+```
+Access the dashboard at `http://localhost:5001`.
 
-### Or runs in functionality mode (CLI)
-If you prefer the terminal like me, runs the engine directly to get a text report of all assets:
-
+### CLI Mode
+Run the quantitative engine directly in the terminal for a text-based report:
 ```bash
 python quant_engine.py
 ```
 
-## Features
+## Configuration
 
-*   **Web Dashboard**: A clean, dark-mode UI to visualize the Bollinger Bands and Anomaly points.
-*   **Discord Alerts**: I added a webhook integration so it can ping a Discord channel when a confirmed setup appears (check `server.py` to add your own webhook URL).
-*   **Trade Setups**: The system suggests specific **Entry Prices**, **Stop Losses**, and **Take Profit** targets based on volatility (ATR).
+Key parameters can be adjusted in `quant_engine.py` or via the API:
+*   `window`: Rolling window size for statistics (default: 20).
+*   `z_threshold`: Z-Score trigger level (default: 2.0).
+*   `risk_percent`: Risk per trade for position sizing (default: 1.0%).
 
-## The Math (Simple Version)
+## Disclaimer
 
-It computes the `Log Return` of the price, then finds the standard deviation over a rolling window (default 20 candles).
-*   **Z-Score = (Current Return - Average Return) / Standard Deviation**
-
-If the Z-Score is **±2.5**, that's a rare event (statistical anomaly). That's where the money is.
-
----
-*Disclaimer: This is code, not financial advice. I use this to help me make decisions, but markets are crazy. Use at your own risk.*
+This software is for educational and research purposes only. It does not constitute financial advice. Trading financial markets involves significant risk.
