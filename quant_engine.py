@@ -484,8 +484,9 @@ class YieldAnomalyTrader:
         }
         
         payload = {
-            "content": "Signal Alert - Yield Anomaly Engine\n"
-                       "Quantitative Analysis Signal",
+            "content": "Signal Alert\n"
+                       "Quant Analysis Deverloped by <@732560547345858570>\n"
+                       "Not financial advice na ja :> ",
             "embeds": [embed]
         }
         
