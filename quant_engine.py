@@ -105,6 +105,18 @@ class YieldAnomalyTrader:
         
         if df.empty:
             raise ValueError(f"No data for {ticker}")
+            
+        # Handle MultiIndex columns if present
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
+            
+        # Standardize Timezone to Asia/Bangkok (UTC+7)
+        target_tz = pytz.timezone('Asia/Bangkok')
+        if df.index.tz is None:
+            df.index = df.index.tz_localize(pytz.utc)
+        df.index = df.index.tz_convert(target_tz)
+        
+        return df, resolved
     
     def calculate_indicators(self, df: pd.DataFrame) -> pd.DataFrame:
         """Calculate OHLCV technical and quantitative indicators (Hurst + OU)."""

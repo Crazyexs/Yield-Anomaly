@@ -67,7 +67,7 @@ def analyze(ticker):
         return jsonify({
             "success": False,
             "error": str(e)
-        }), 400
+        })
 
 
 @app.route('/api/chart-data/<ticker>')
@@ -93,7 +93,7 @@ def chart_data(ticker):
         return jsonify({
             "success": False,
             "error": str(e)
-        }), 400
+        })
 
 
 @app.route('/api/analyze-all')
