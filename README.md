@@ -2,44 +2,63 @@
 
 ## Overview
 
-The Yield Anomaly Detector is a quantitative analysis tool designed to identify statistical anomalies in financial markets. By calculating real-time Z-Scores of log returns across multiple assets (NASDAQ 100, Gold, S&P 500, Bitcoin), the system detects overbought and oversold conditions based on mean reversion principles.
+The Yield Anomaly Detector is a highly advanced quantitative analysis tool designed to identify statistical anomalies in financial markets. It replaces basic moving averages and subjective technical analysis with rigorous stochastic mathematics, utilizing the **Hurst Exponent** and the **Ornstein-Uhlenbeck (OU) Stochastic Process**.
 
-The system features a Flask-based backend for data processing and a real-time web dashboard for visualization.
+The system features a Flask-based backend for real-time tick-data processing and a React-style dashboard for visual quant strategy mapping.
 
 ## Methodology
 
-The core strategy relies on the statistical properties of asset returns:
+The core strategy relies on the statistical properties of asset returns and regimes:
 
-1.  **Log Returns**: Calculates the natural logarithm of price changes to normalize volatility.
-2.  **Rolling Statistics**: Computes the mean and standard deviation over a defined window (default: 20 periods).
-3.  **Z-Score Calculation**: Measures the distance of the current return from the historical mean in units of standard deviation.
-    *   $$Z = \frac{R_t - \mu}{\sigma}$$
-4.  **Anomaly Detection**: Signals are generated when the Z-Score exceeds defined thresholds (default: ±2.0σ), indicating a statistically significant deviation.
+1.  **Hurst Exponent Regime Detection ($H$)**: Calculates the rolling Hurst Exponent to mathematically define the market regime.
+    *   $H < 0.45$: Mean-Reverting Regime (Trades enabled)
+    *   $0.45 \le H \le 0.55$: Random Walk
+    *   $H > 0.55$: Trending Regime (Mean-reverting trades disabled)
+2.  **Ornstein-Uhlenbeck Process**: Calibrates the exact SDE $dX = \theta(\mu - X)dt + \sigma dW$ against real-time data to find the absolute stochastic equilibrium.
+3.  **Anomaly Detection**: Signals are generated when $H < 0.45$ and the price statically diverges from the OU Mean ($\mu \pm 2\sigma$).
+4.  **Optimal Exits**: Take-profit targets are calculated based on the OU Mean equilibrium $\mu$, maximizing mathematically proven win-rates.
 
 ## Features
 
-*   **Real-time Analysis**: Fetches and processes live market data.
-*   **Web Dashboard**: Visualizes Z-Scores, Bollinger Bands, and price action.
-*   **Trade Setup Generation**: Automatically calculates entry, stop-loss, and take-profit levels based on ATR (Average True Range).
-*   **Discord Integration**: Sends alerts to configured webhooks upon confirming actionable signals.
+*   **Real-time Analysis**: Polling 1-minute to 15-minute interval data in real time via Yahoo Finance.
+*   **Web Dashboard**: Visualizes the OU Model, Hurst Exponent, Volatility bands, and exact Entry/TP/SL limits.
+*   **Discord Integration**: Sends alerts to configured webhooks upon confirming actionable signals in the underlying price action.
 
-## Installation
+## Installation & Setup
+
+### Prerequisites
+*   Python 3.10 or higher
+*   Git
+*   Internet connection (Must allow traffic to `fc.yahoo.com` for `yfinance` data polling)
 
 1.  **Clone the repository**:
     ```bash
-    git clone <repository_url>
+    git clone https://github.com/Crazyexs/Yield-Anomaly.git
     cd yield-anomaly
     ```
 
-2.  **Set up a virtual environment**:
+### Linux / macOS Setup
+
+2.  **Set up the Virtual Environment & Install Dependencies**:
     ```bash
-    python -m venv venv
-    source venv/bin/activate  # On Windows: venv\Scripts\activate
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install -r requirements.txt
+    
+    # Ensure advanced math libraries are installed
+    pip install statsmodels hurst yfinance pandas flask requests
     ```
 
-3.  **Install dependencies**:
-    ```bash
+### Windows Setup
+
+2.  **Set up the Virtual Environment & Install Dependencies**:
+    ```cmd
+    python -m venv venv
+    venv\Scripts\activate
     pip install -r requirements.txt
+    
+    # Ensure advanced math libraries are installed
+    pip install statsmodels hurst yfinance pandas flask requests
     ```
 
 ## Usage
@@ -59,10 +78,11 @@ python quant_engine.py
 
 ## Configuration
 
-Key parameters can be adjusted in `quant_engine.py` or via the API:
-*   `window`: Rolling window size for statistics (default: 20).
-*   `z_threshold`: Z-Score trigger level (default: 2.0).
-*   `risk_percent`: Risk per trade for position sizing (default: 1.0%).
+Key parameters can be adjusted in `server.py` and `quant_engine.py` or via the Dashboard API:
+*   `window`: Rolling window size for OU calibration (default: `40`).
+*   `ou_threshold`: Number of OU standard deviations ($\sigma$) required to trigger anomaly (default: `2.0`).
+*   `risk_percent`: Risk per trade for position sizing defaults (default: `1.0%`).
+*   `interval`: Tick frequency `15m` (Must respect Yahoo Finance API limits).
 
 ## Disclaimer
 

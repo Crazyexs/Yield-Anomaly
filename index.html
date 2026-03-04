@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Yield Anomaly Detection | Quant Dashboard</title>
     <meta name="description"
-        content="Real-time quantitative analysis for detecting yield anomalies using Log Returns and Z-Score methodology.">
+        content="Real-time quantitative analysis for detecting trading anomalies using Hurst Exponent and Ornstein-Uhlenbeck stochastic mechanics.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -37,10 +37,9 @@
 
         <!-- Asset Selector -->
         <nav class="asset-nav">
-            <button class="asset-btn active" data-ticker="NDX">NASDAQ 100</button>
-            <button class="asset-btn" data-ticker="XAU">Gold (XAU)</button>
-            <button class="asset-btn" data-ticker="SPX">S&P 500</button>
-            <button class="asset-btn" data-ticker="BTC">Bitcoin</button>
+            <button class="asset-btn active" data-ticker="MNQ">CME MNQ</button>
+            <button class="asset-btn" data-ticker="MGC">COMEX MGC</button>
+            <button class="asset-btn" data-ticker="ES">CME ES</button>
         </nav>
 
         <!-- Main Content -->
@@ -48,7 +47,7 @@
             <!-- Signal Card -->
             <section class="signal-card" id="signalCard">
                 <div class="signal-header">
-                    <h2 id="assetTitle">NASDAQ 100</h2>
+                    <h2 id="assetTitle">CME MNQ</h2>
                     <div class="signal-badge" id="signalBadge">LOADING</div>
                 </div>
                 <div class="signal-body">
@@ -65,12 +64,16 @@
                         <span class="report-value" id="currentPrice">--</span>
                     </div>
                     <div class="report-row">
-                        <span class="report-label">Log Return (R<sub>t</sub>)</span>
-                        <span class="report-value mono" id="logReturn">--</span>
+                        <span class="report-label">OU Hurst Exponent ($H$)</span>
+                        <span class="report-value mono" id="hurstValue">--</span>
                     </div>
                     <div class="report-row highlight">
-                        <span class="report-label">Z-Score (Anomaly Factor)</span>
+                        <span class="report-label">OU Deviation ($Z$)</span>
                         <span class="report-value mono" id="zScore">--</span>
+                    </div>
+                    <div class="report-row">
+                        <span class="report-label">Target Equilibrium ($\mu$)</span>
+                        <span class="report-value mono" id="ouMean">--</span>
                     </div>
                     <div class="report-row">
                         <span class="report-label">ATR (Volatility)</span>
@@ -97,9 +100,9 @@
                         <div class="confidence-fill" id="confidenceFill" style="width: 0%"></div>
                     </div>
                     <div class="confidence-factors" id="confidenceFactors">
-                        <span class="factor">Z-SCORE: --</span>
-                        <span class="factor">VOL: --</span>
-                        <span class="factor">TREND: --</span>
+                        <span class="factor">HURST: --</span>
+                        <span class="factor">OU_THETA: --</span>
+                        <span class="factor">OU_SIGMA: --</span>
                     </div>
                 </div>
 
@@ -122,17 +125,17 @@
                             <span class="level-pct" id="slPercent">--</span>
                         </div>
                         <div class="level-row take-profit">
-                            <span class="level-label">TP_1 (CONSERVATIVE)</span>
+                            <span class="level-label">TP_1 (OU EQUILIBRIUM)</span>
                             <span class="level-value" id="tp1Price">--</span>
                             <span class="level-rr" id="tp1RR">R:R --</span>
                         </div>
                         <div class="level-row take-profit">
-                            <span class="level-label">TP_2 (STANDARD)</span>
+                            <span class="level-label">TP_2 (μ ± 1σ)</span>
                             <span class="level-value" id="tp2Price">--</span>
                             <span class="level-rr" id="tp2RR">R:R --</span>
                         </div>
                         <div class="level-row take-profit">
-                            <span class="level-label">TP_3 (EXTENDED)</span>
+                            <span class="level-label">TP_3 (μ ± 2σ)</span>
                             <span class="level-value" id="tp3Price">--</span>
                             <span class="level-rr" id="tp3RR">R:R --</span>
                         </div>
@@ -161,7 +164,7 @@
 
             <!-- Chart Section -->
             <section class="chart-card">
-                <h3 class="card-title">LOG_RETURN_SERIES</h3>
+                <h3 class="card-title">OU_EQUILIBRIUM_DEVIATION</h3>
                 <div class="chart-container">
                     <canvas id="logReturnChart"></canvas>
                 </div>
@@ -169,7 +172,7 @@
 
             <!-- Z-Score Chart -->
             <section class="chart-card">
-                <h3 class="card-title">Z_SCORE_DISTRIBUTION</h3>
+                <h3 class="card-title">OU_DISPERSION_HISTOGRAM</h3>
                 <div class="chart-container">
                     <canvas id="zScoreChart"></canvas>
                 </div>
@@ -180,19 +183,17 @@
                 <h3 class="card-title">ALGORITHM_SPEC</h3>
                 <div class="methodology-content">
                     <div class="terminal-text-block">
-                        <p>> MODEL: MEAN_REVERSION_V1</p>
-                        <p>> METRIC: LOG_NORMAL_RETURN</p>
-                        <p>> FORMULA: R(t) = ln(P_t / P_{t-1})</p>
-                        <p>> NORM: Z = (R - μ) / σ</p>
-                        <br>
-                        <p>> THRESHOLDS:</p>
-                        <ul class="terminal-list">
-                            <li><span class="t-red">[SELL_CRIT]</span> Z > +2.5 σ</li>
-                            <li><span class="t-red">[SELL_STD]</span> Z > +2.0 σ</li>
-                            <li><span class="t-gray">[NEUTRAL__]</span> -1.5 < Z < 1.5</li>
-                            <li><span class="t-green">[BUY_STD__]</span> Z < -2.0 σ</li>
-                            <li><span class="t-green">[BUY_CRIT_]</span> Z < -2.5 σ</li>
-                        </ul>
+                        <p>> MODEL: ORNSTEIN-UHLENBECK</p>
+                        <p>> PROCESS: dX = θ(μ - X)dt + σdW</p>
+                        <p>> REGIME MAP: H < 0.45 [MEAN_REVERT]</p>
+                                <p>> REGIME MAP: H > 0.55 [TRENDING_MM]</p>
+                                <br>
+                                <p>> SDE ANOMALY ZONES:</p>
+                                <ul class="terminal-list">
+                                    <li><span class="t-red">[SELL_OU]</span> Z > +2.0 σ</li>
+                                    <li><span class="t-gray">[CHOP_EQ]</span> -2.0 < Z < 2.0</li>
+                                    <li><span class="t-green">[BUY_OU_]</span> Z < -2.0 σ</li>
+                                </ul>
                     </div>
                 </div>
             </section>

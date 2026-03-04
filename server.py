@@ -18,11 +18,10 @@ DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1464301870804631614/rK3v
 # Initialize the trading engine
 detector = YieldAnomalyDetector(
     period="5d",
-    interval="15m",
-    window=20,
+    interval="15m", # Changed back to 15m for stable fetching
+    window=40, # Window for 15m OU calibration
     atr_period=14,
-    z_threshold=2.0,
-    z_critical=2.5,
+    ou_threshold=2.0,
     risk_percent=1.0,
     account_balance=10000.0,
     discord_webhook_url=DISCORD_WEBHOOK_URL
@@ -106,7 +105,7 @@ def analyze_all():
         JSON with analysis for NDX, XAU, SPX, BTC
     """
     results = {}
-    assets = ['NDX', 'XAU', 'SPX', 'BTC']
+    assets = ['MNQ', 'MGC', 'ES']
     
     for asset in assets:
         try:
@@ -131,10 +130,9 @@ def config():
         detector = YieldAnomalyDetector(
             period=data.get('period', '5d'),
             interval=data.get('interval', '15m'),
-            window=data.get('window', 20),
+            window=data.get('window', 40),
             atr_period=data.get('atr_period', 14),
-            z_threshold=data.get('z_threshold', 2.0),
-            z_critical=data.get('z_critical', 2.5),
+            ou_threshold=data.get('ou_threshold', 2.0),
             risk_percent=data.get('risk_percent', 1.0),
             account_balance=data.get('account_balance', 10000.0),
             discord_webhook_url=data.get('discord_webhook_url', detector.discord_webhook_url)
@@ -149,8 +147,7 @@ def config():
             "interval": detector.interval,
             "window": detector.window,
             "atr_period": detector.atr_period,
-            "z_threshold": detector.z_threshold,
-            "z_critical": detector.z_critical,
+            "ou_threshold": detector.ou_threshold,
             "risk_percent": detector.risk_percent,
             "account_balance": detector.account_balance,
             "discord_webhook_url": detector.discord_webhook_url

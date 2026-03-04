@@ -6,10 +6,10 @@
 
 // Configuration
 const API_BASE = '/api';
-const REFRESH_INTERVAL = 30000; // 30 seconds
+const REFRESH_INTERVAL = 5000; // 5 seconds (Real-Time Polling)
 
 // State
-let currentTicker = 'NDX';
+let currentTicker = 'MNQ';
 let logReturnChart = null;
 let zScoreChart = null;
 let refreshTimer = null;
@@ -24,10 +24,10 @@ const elements = {
     signalIcon: document.getElementById('signalIcon'),
     signalDescription: document.getElementById('signalDescription'),
     currentPrice: document.getElementById('currentPrice'),
-    logReturn: document.getElementById('logReturn'),
+    hurstValue: document.getElementById('hurstValue'),
     zScore: document.getElementById('zScore'),
+    ouMean: document.getElementById('ouMean'),
     atrValue: document.getElementById('atrValue'),
-    volumeRatio: document.getElementById('volumeRatio'),
     // Confidence elements
     confidenceValue: document.getElementById('confidenceValue'),
     confidenceFill: document.getElementById('confidenceFill'),
@@ -150,7 +150,7 @@ function initCharts() {
                     backgroundColor: 'rgba(17, 24, 39, 0.95)',
                     padding: 12,
                     callbacks: {
-                        label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(6)}`
+                        label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}`
                     }
                 }
             },
@@ -251,11 +251,11 @@ function updateUI(data) {
     // Update quant report
     set('currentPrice', formatPrice(data.price.current, data.ticker));
 
-    if (data.analysis.log_return !== null) {
-        const cls = `report-value mono ${data.analysis.log_return >= 0 ? 'positive' : 'negative'}`;
-        set('logReturn', formatDecimal(data.analysis.log_return, 6), cls);
+    if (data.analysis.hurst !== null) {
+        const cls = `report-value mono ${data.analysis.hurst > 0.55 ? 'positive' : (data.analysis.hurst < 0.45 ? 'negative' : '')}`;
+        set('hurstValue', formatDecimal(data.analysis.hurst, 3), cls);
     } else {
-        set('logReturn', '--');
+        set('hurstValue', '--');
     }
 
     if (data.analysis.z_score !== null) {
@@ -263,6 +263,12 @@ function updateUI(data) {
         set('zScore', formatDecimal(data.analysis.z_score, 3), cls);
     } else {
         set('zScore', '--');
+    }
+
+    if (data.analysis.mean !== null) {
+        set('ouMean', formatDecimal(data.analysis.mean, 2));
+    } else {
+        set('ouMean', '--');
     }
 
     // ATR and Volume
@@ -316,14 +322,22 @@ function updateConfidence(confidence) {
         }
     }
 
-    // Update factors
-    if (confidence.factors) {
+    // Update factors if confidence object exists, otherwise display basic quant stats
+    if (confidence && confidence.factors) {
         const f = confidence.factors;
         elements.confidenceFactors.innerHTML = `
-            <span class="factor">Z: ${f.z_score_strength.points}/${f.z_score_strength.max}</span>
-            <span class="factor">Vol: ${f.volume_confirmation.points}/${f.volume_confirmation.max}</span>
-            <span class="factor">Trend: ${f.trend_alignment.points}/${f.trend_alignment.max}</span>
-            <span class="factor">ATR: ${f.volatility_suitability.points}/${f.volatility_suitability.max}</span>
+            <span class="factor">HURST: ${formatDecimal(data.analysis.hurst, 2)}</span>
+            <span class="factor">OU_THETA: ${formatDecimal(data.analysis.theta, 4)}</span>
+            <span class="factor">OU_SIGMA: ${formatDecimal(data.analysis.std_dev, 2)}</span>
+            <span class="factor">ATR: ${formatDecimal(data.analysis.atr, 2)}</span>
+        `;
+    } else if (elements.confidenceFactors && data.analysis) {
+        // Fallback to show quant stats directly in the factors area if no ML confidence returned
+        elements.confidenceFactors.innerHTML = `
+            <span class="factor">HURST: ${formatDecimal(data.analysis.hurst, 2)}</span>
+            <span class="factor">OU_THETA: ${formatDecimal(data.analysis.theta, 4)}</span>
+            <span class="factor">OU_SIGMA: ${formatDecimal(data.analysis.std_dev, 2)}</span>
+            <span class="factor">ATR: ${formatDecimal(data.analysis.atr, 2)}</span>
         `;
     }
 }
@@ -379,12 +393,14 @@ function updateTradeSetup(tradeSetup) {
  * Update charts with new data
  */
 function updateCharts(data) {
-    // Update Log Return Chart
+    // Update OU Price Chart
     logReturnChart.data.labels = data.labels;
-    logReturnChart.data.datasets[0].data = data.log_returns;
-    logReturnChart.data.datasets[1].data = data.upper_threshold;
-    logReturnChart.data.datasets[2].data = data.lower_threshold;
+    logReturnChart.data.datasets[0].data = data.prices; // Plot price directly against bands
+    logReturnChart.data.datasets[1].data = data.upper_band;
+    logReturnChart.data.datasets[2].data = data.lower_band;
     logReturnChart.data.datasets[3].data = data.mean;
+    logReturnChart.data.datasets[0].label = 'Price';
+    logReturnChart.options.plugins.tooltip.callbacks.label = ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}`;
     logReturnChart.update('none');
 
     // Update Z-Score Chart
