@@ -292,21 +292,30 @@ class YieldAnomalyTrader:
             
         if is_long:
             direction = "LONG"
-            entry_trigger = price if is_confirmation_candle else anomaly_high # Enter linearly on confirmation close, or wait for break
-            stop_loss = anomaly_low - (atr * 0.5)  # Below low with buffer
+            # Ultimate Sniper Matrix: Deep Golden Ratio 61.8% Limit Order inside the anomaly sweep
+            pullback_target = anomaly_low + ((anomaly_high - anomaly_low) * 0.382) # 0.382 from bottom = 0.618 from top
+            entry_trigger = pullback_target if is_confirmation_candle else anomaly_high
             
-            # Take profits based on OU Equlibrium
+            # Micro Stop-Loss: Placed exactly at the absolute bottom of the anomaly with a 0.05 ATR noise filter
+            stop_loss = anomaly_low - (atr * 0.05)  
+            
+            # Asymmetrical Take Profits based on OU Equlibrium
             tp1 = mean  # Mean Reversion Target (Equilibrium)
-            tp2 = mean + (latest['OU_Sigma'] * 1.0)  # Momentum carry
-            tp3 = mean + (latest['OU_Sigma'] * 2.0)
+            tp2 = mean + (latest['OU_Sigma'] * 1.5)  # Momentum cascade
+            tp3 = mean + (latest['OU_Sigma'] * 3.0)  # Extreme tail event
         else:
             direction = "SHORT"
-            entry_trigger = price if is_confirmation_candle else anomaly_low # Enter linearly on confirmation close, or wait for break
-            stop_loss = anomaly_high + (atr * 0.5)  # Above high with buffer
+            # Ultimate Sniper Matrix: Deep Golden Ratio 61.8% Limit Order inside the anomaly sweep
+            pullback_target = anomaly_high - ((anomaly_high - anomaly_low) * 0.382) # 0.382 from top = 0.618 from bottom
+            entry_trigger = pullback_target if is_confirmation_candle else anomaly_low
             
+            # Micro Stop-Loss: Placed exactly at the absolute top of the anomaly with a 0.05 ATR noise filter
+            stop_loss = anomaly_high + (atr * 0.05)  
+            
+            # Asymmetrical Take Profits based on OU Equlibrium
             tp1 = mean
-            tp2 = mean - (latest['OU_Sigma'] * 1.0)
-            tp3 = mean - (latest['OU_Sigma'] * 2.0)
+            tp2 = mean - (latest['OU_Sigma'] * 1.5)
+            tp3 = mean - (latest['OU_Sigma'] * 3.0)
         
         stop_distance = abs(entry_trigger - stop_loss)
         if stop_distance == 0:
@@ -343,7 +352,7 @@ class YieldAnomalyTrader:
             "is_confirmed": is_confirmed,
             "current_price": round(price, 2),
             "entry_trigger": round(entry_trigger, 2),
-            "entry_type": f"MARKET @ {entry_trigger:.2f}" if is_confirmed else (f"BUY STOP @ {entry_trigger:.2f}" if is_long else f"SELL STOP @ {entry_trigger:.2f}"),
+            "entry_type": f"LIMIT @ {entry_trigger:.2f}" if is_confirmed else (f"BUY STOP @ {entry_trigger:.2f}" if is_long else f"SELL STOP @ {entry_trigger:.2f}"),
             "stop_loss": round(stop_loss, 2),
             "take_profit": {
                 "tp1": {"price": round(tp1, 2), "rr": round(abs(tp1-entry_trigger)/risk, 1) if risk > 0 else 0, "label": "OU Equilibrium (μ)"},

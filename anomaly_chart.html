@@ -41,10 +41,9 @@
 
         <!-- Asset Navigation -->
         <div class="asset-tabs">
-            <button class="asset-tab active" data-ticker="NDX">NASDAQ_100</button>
-            <button class="asset-tab" data-ticker="XAU">GOLD_XAU</button>
-            <button class="asset-tab" data-ticker="SPX">S&P_500</button>
-            <button class="asset-tab" data-ticker="BTC">BITCOIN</button>
+            <button class="asset-tab active" data-ticker="MNQ">CME_MNQ</button>
+            <button class="asset-tab" data-ticker="MGC">COMEX_MGC</button>
+            <button class="asset-tab" data-ticker="ES">CME_ES</button>
         </div>
 
         <!-- Main Grid -->
@@ -97,8 +96,8 @@
                             <span class="report-value mono" id="currentZScore">--</span>
                         </div>
                         <div class="report-item">
-                            <span class="report-label">LOG_RET</span>
-                            <span class="report-value mono" id="currentLogReturn">--</span>
+                            <span class="report-label">HURST_H</span>
+                            <span class="report-value mono" id="currentHurst">--</span>
                         </div>
                         <div class="report-item">
                             <span class="report-label">ATR</span>
@@ -126,7 +125,7 @@
         const Z_THRESHOLD = 2.0;
 
         // State
-        let currentTicker = 'NDX';
+        let currentTicker = 'MNQ';
         let chart = null;
         // Global series references
         let lineSeries = null;
@@ -172,13 +171,13 @@
                 },
             });
 
-            // 1. Log Return Series (The noisy white/gray line)
+            // 1. Price Series (White-ish)
             lineSeries = chart.addLineSeries({
                 color: '#e5e7eb', // Gray-200 (White-ish)
                 lineWidth: 1,
-                title: 'Log Return',
+                title: 'Price',
                 crosshairMarkerVisible: true,
-                priceFormat: { type: 'price', precision: 6, minMove: 0.000001 },
+                priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
             });
 
             // 2. Mean Series (Cyan Dashed)
@@ -186,9 +185,9 @@
                 color: '#06b6d4', // Cyan-500
                 lineWidth: 1,
                 lineStyle: 1, // Dashed
-                title: 'Mean',
+                title: 'OU Mean (μ)',
                 crosshairMarkerVisible: false,
-                priceFormat: { type: 'price', precision: 6, minMove: 0.000001 },
+                priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
             });
 
             // 3. Upper Band (+2σ, Red Dotted)
@@ -196,9 +195,9 @@
                 color: '#ef4444', // Red-500
                 lineWidth: 1,
                 lineStyle: 2, // Dotted
-                title: '+2σ Band',
+                title: '+OU σ Band',
                 crosshairMarkerVisible: false,
-                priceFormat: { type: 'price', precision: 6, minMove: 0.000001 },
+                priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
             });
 
             // 4. Lower Band (-2σ, Green Dotted)
@@ -206,18 +205,18 @@
                 color: '#22c55e', // Green-500
                 lineWidth: 1,
                 lineStyle: 2, // Dotted
-                title: '-2σ Band',
+                title: '-OU σ Band',
                 crosshairMarkerVisible: false,
-                priceFormat: { type: 'price', precision: 6, minMove: 0.000001 },
+                priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
             });
 
-            // 5. Anomaly Connection Line (The "Trend" of anomalies)
+            // 5. Anomaly Connection Line
             anomalyLineSeries = chart.addLineSeries({
                 color: '#f59e0b', // Amber-500
                 lineWidth: 1,
-                title: 'Anomaly Trend',
+                title: 'Deviation Target',
                 crosshairMarkerVisible: false,
-                priceFormat: { type: 'price', precision: 6, minMove: 0.000001 },
+                priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
             });
 
             // Resize Observer
@@ -267,10 +266,15 @@
         function updateChart(data) {
             const lineData = data.labels.map((label, i) => ({
                 time: parseTime(label),
-                value: data.log_returns[i]
+                value: data.prices[i]
             }));
 
             lineSeries.setData(lineData);
+
+            // Plot OU Target Bands
+            meanSeries.setData(data.labels.map((label, i) => ({ time: parseTime(label), value: data.mean[i] })));
+            upperBandSeries.setData(data.labels.map((label, i) => ({ time: parseTime(label), value: data.upper_band[i] })));
+            lowerBandSeries.setData(data.labels.map((label, i) => ({ time: parseTime(label), value: data.lower_band[i] })));
 
             // Markers for anomalies
             const markers = [];
@@ -318,10 +322,10 @@
             zEl.textContent = z ? z.toFixed(3) : '--';
             zEl.style.color = Math.abs(z) > 2 ? (z < 0 ? '#22c55e' : '#ef4444') : '#9ca3af';
 
-            // Log Return
-            const r = data.analysis.log_return;
-            const rEl = document.getElementById('currentLogReturn');
-            rEl.textContent = r ? r.toFixed(6) : '--';
+            // Hurst
+            const r = data.analysis.hurst;
+            const rEl = document.getElementById('currentHurst');
+            rEl.textContent = r ? r.toFixed(3) : '--';
 
             // ATR
             if (data.analysis.atr) {
