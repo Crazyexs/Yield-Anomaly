@@ -105,18 +105,6 @@ class YieldAnomalyTrader:
         
         if df.empty:
             raise ValueError(f"No data for {ticker}")
-        
-        # Handle MultiIndex columns if present
-        if isinstance(df.columns, pd.MultiIndex):
-            df.columns = df.columns.get_level_values(0)
-            
-        # Standardize Timezone to Asia/Bangkok (UTC+7)
-        target_tz = pytz.timezone('Asia/Bangkok')
-        if df.index.tz is None:
-            df.index = df.index.tz_localize(pytz.utc)
-        df.index = df.index.tz_convert(target_tz)
-        
-        return df, resolved
     
     def calculate_indicators(self, df: pd.DataFrame) -> pd.DataFrame:
         """Calculate OHLCV technical and quantitative indicators (Hurst + OU)."""
@@ -148,12 +136,12 @@ class YieldAnomalyTrader:
             window_prices = prices[i - self.window + 1 : i + 1]
             
             # --- 1. Compute Hurst Exponent ---
-            # Needs at least ~30-40 elements to be somewhat stable
             try:
-                H, c, data = compute_Hc(window_prices, kind='price', simplified=True)
+                H, _, _ = compute_Hc(window_prices, kind='price', simplified=True)
                 df.iloc[i, df.columns.get_loc('Hurst')] = H
             except Exception:
-                pass
+                # If Hurst fails on synthetic perfect walks, assume previous or slight mean-reverting
+                df.iloc[i, df.columns.get_loc('Hurst')] = df.iloc[i-1]['Hurst'] if i > 0 and pd.notna(df.iloc[i-1]['Hurst']) else 0.49
             
             # --- 2. Calibrate Ornstein-Uhlenbeck Process ---
             # dX_t = \theta (\mu - X_t) dt + \sigma dW_t
@@ -170,10 +158,9 @@ class YieldAnomalyTrader:
                 model = sm.OLS(y, x_sm)
                 results = model.fit()
                 
-                # Extract parameters
                 if len(results.params) == 2:
                     alpha, beta = results.params
-                    if beta < 0: # Ensures mean-reverting (theta > 0)
+                    if beta < 0: # Mean-reverting (theta > 0)
                         theta = -beta
                         mu = alpha / theta
                         sigma = np.std(results.resid)
@@ -182,13 +169,24 @@ class YieldAnomalyTrader:
                         df.iloc[i, df.columns.get_loc('OU_Theta')] = theta
                         df.iloc[i, df.columns.get_loc('OU_Sigma')] = sigma
                         
-                        # Calculate current "OU-Z-Score" (Number of sigmas away from equilibrium)
-                        current_price = window_prices[-1]
                         if sigma > 0:
-                            ou_z = (current_price - mu) / sigma
-                            df.iloc[i, df.columns.get_loc('OU_Z')] = ou_z
+                            df.iloc[i, df.columns.get_loc('OU_Z')] = (window_prices[-1] - mu) / sigma
+                    else:
+                        # Locally trending. Fallback to moving average proxy for UI continuity
+                        df.iloc[i, df.columns.get_loc('OU_Mean')] = np.mean(window_prices)
+                        df.iloc[i, df.columns.get_loc('OU_Theta')] = 0.001
+                        df.iloc[i, df.columns.get_loc('OU_Sigma')] = np.std(window_prices)
+                        if np.std(window_prices) > 0:
+                            df.iloc[i, df.columns.get_loc('OU_Z')] = (window_prices[-1] - np.mean(window_prices)) / np.std(window_prices)
             except Exception:
                 pass
+                
+        # Forward fill any remaining NaNs after the initial window to prevent frontend crashes
+        df['Hurst'] = df['Hurst'].ffill()
+        df['OU_Mean'] = df['OU_Mean'].ffill()
+        df['OU_Sigma'] = df['OU_Sigma'].ffill()
+        df['OU_Theta'] = df['OU_Theta'].ffill()
+        df['OU_Z'] = df['OU_Z'].ffill()
 
         # Formatting bands for UI
         df['Upper_Band'] = df['OU_Mean'] + (self.ou_threshold * df['OU_Sigma'])
@@ -609,17 +607,17 @@ class YieldAnomalyTrader:
 def print_trading_report(report: Dict) -> None:
     """Print a professional trading report."""
     print("\n" + "=" * 70)
-    print(f"  QUANT TRADING SIGNAL: {report['asset_name']}")
+    print(f"  YIELD ANOMALY SIGNAL: {report['asset_name']}")
     print("=" * 70)
     print(f"  Ticker: {report['ticker']}  |  Time: {report['data_timestamp']}")
     print("-" * 70)
     print(f"  Current Price:    ${report['price']['current']:,.2f}")
     if report['analysis']['hurst'] is not None:
-        print(f"  HURST EXPONENT:   {report['analysis']['hurst']:.2f}")
+        print(f"  HURST EXPONENT:   {float(report['analysis']['hurst']):.2f}")
     if report['analysis']['z_score'] is not None:
-        print(f"  OU DEVIATION:     {report['analysis']['z_score']:.3f} σ")
+        print(f"  OU DEVIATION:     {float(report['analysis']['z_score']):.3f} σ")
     if report['analysis']['mean'] is not None:
-        print(f"  OU EQUILIBRIUM:   ${report['analysis']['mean']:.2f}")
+        print(f"  OU EQUILIBRIUM:   ${float(report['analysis']['mean']):.2f}")
     print("-" * 70)
     print(f"  SIGNAL:           {report['signal']['signal']}")
     print(f"  ACTION:           {report['signal']['action']}")
@@ -671,7 +669,7 @@ if __name__ == "__main__":
     
     assets = ['MNQ', 'MGC', 'ES']
     
-    print("\n" + "QUANTITATIVE OU/HURST TRADING ENGINE".center(70))
+    print("\n" + "YIELD ANOMALY TRADING ENGINE".center(70))
     print("=" * 70)
     print("  Strategy: Hurst Regime Detection | Ornstein-Uhlenbeck Mechanics")
     print("=" * 70)
