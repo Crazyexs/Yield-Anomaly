@@ -346,13 +346,13 @@ class YieldAnomalyTrader:
                 # For long: check if current candle is green and broke high
                 is_green = latest['Close'] > latest['Open']
                 broke_high = latest['High'] > anomaly_high
-                is_confirmed = is_green and broke_high
+                is_confirmed = bool(is_green and broke_high)
                 confirmation_msg = "CONFIRMED - Quant Setup Ready" if is_confirmed else "WAIT for PA confirmation"
             else:
                 # For short: check if current candle is red and broke low
                 is_red = latest['Close'] < latest['Open']
                 broke_low = latest['Low'] < anomaly_low
-                is_confirmed = is_red and broke_low
+                is_confirmed = bool(is_red and broke_low)
                 confirmation_msg = "CONFIRMED - Quant Setup Ready" if is_confirmed else "WAIT for PA confirmation"
         
         return {
