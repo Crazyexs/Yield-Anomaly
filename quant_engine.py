@@ -605,8 +605,12 @@ def print_trading_report(report: Dict) -> None:
     print(f"  Ticker: {report['ticker']}  |  Time: {report['data_timestamp']}")
     print("-" * 70)
     print(f"  Current Price:    ${report['price']['current']:,.2f}")
-    print(f"  Log Return:       {report['analysis']['log_return']:.6f}" if report['analysis']['log_return'] else "  Log Return:       N/A")
-    print(f"  Z-SCORE:          {report['analysis']['z_score']:.3f}" if report['analysis']['z_score'] else "  Z-SCORE:          N/A")
+    if report['analysis']['hurst'] is not None:
+        print(f"  HURST EXPONENT:   {report['analysis']['hurst']:.2f}")
+    if report['analysis']['z_score'] is not None:
+        print(f"  OU DEVIATION:     {report['analysis']['z_score']:.3f} σ")
+    if report['analysis']['mean'] is not None:
+        print(f"  OU EQUILIBRIUM:   ${report['analysis']['mean']:.2f}")
     print("-" * 70)
     print(f"  SIGNAL:           {report['signal']['signal']}")
     print(f"  ACTION:           {report['signal']['action']}")
@@ -641,22 +645,32 @@ def print_trading_report(report: Dict) -> None:
 YieldAnomalyDetector = YieldAnomalyTrader
 
 
+import os
+
 if __name__ == "__main__":
+    DISCORD_URL = os.environ.get("DISCORD_WEBHOOK_URL", None)
+    
     trader = YieldAnomalyTrader(
         period="5d",
         interval="15m",
-        window=20,
-        z_threshold=2.0,
-        z_critical=2.5,
+        window=40,
+        ou_threshold=2.0,
         risk_percent=1.0,
-        account_balance=10000.0
+        account_balance=10000.0,
+        discord_webhook_url=DISCORD_URL
     )
     
     assets = ['MNQ', 'MGC', 'ES']
     
-    print("\n" + "YIELD ANOMALY TRADING ENGINE".center(70))
+    print("\n" + "QUANTITATIVE OU/HURST TRADING ENGINE".center(70))
     print("=" * 70)
-    print("  Strategy: Mean Reversion | Z-Score Anomalies | Market Confirmation")
+    print("  Strategy: Hurst Regime Detection | Ornstein-Uhlenbeck Mechanics")
+    print("=" * 70)
+    
+    if DISCORD_URL:
+        print("  [DISCORD ALERTS ENABLED]".center(70))
+    else:
+        print("  [DISCORD ALERTS DISABLED - NO WEBHOOK URL PROVIDED]".center(70))
     print("=" * 70)
     
     for asset in assets:
