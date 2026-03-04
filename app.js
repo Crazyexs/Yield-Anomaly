@@ -368,19 +368,19 @@ function updateTradeSetup(tradeSetup) {
     }
 
     // Price levels
-    set('entryPrice', `$${tradeSetup.entry_price.toLocaleString()}`);
+    set('entryPrice', `$${tradeSetup.entry_trigger.toLocaleString()}`);
     set('stopLoss', `$${tradeSetup.stop_loss.toLocaleString()}`);
-    set('slPercent', `-${tradeSetup.risk_management.stop_distance_percent}%`);
+    set('slPercent', `-${tradeSetup.risk_management.stop_distance_pct}%`);
 
     // Take profits
     set('tp1Price', `$${tradeSetup.take_profit.tp1.price.toLocaleString()}`);
-    set('tp1RR', `R:R ${tradeSetup.take_profit.tp1.rr_ratio}`);
+    set('tp1RR', `R:R ${tradeSetup.take_profit.tp1.rr}`);
 
     set('tp2Price', `$${tradeSetup.take_profit.tp2.price.toLocaleString()}`);
-    set('tp2RR', `R:R ${tradeSetup.take_profit.tp2.rr_ratio}`);
+    set('tp2RR', `R:R ${tradeSetup.take_profit.tp2.rr}`);
 
     set('tp3Price', `$${tradeSetup.take_profit.tp3.price.toLocaleString()}`);
-    set('tp3RR', `R:R ${tradeSetup.take_profit.tp3.rr_ratio}`);
+    set('tp3RR', `R:R ${tradeSetup.take_profit.tp3.rr}`);
 
     // Risk management
     set('positionSize', `${tradeSetup.risk_management.position_size.toFixed(4)} units`);
