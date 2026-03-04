@@ -372,6 +372,7 @@ class YieldAnomalyTrader:
             "risk_management": {
                 "risk_amount": round(risk_amount, 2),
                 "position_size": round(position_size, 4),
+                "risk_percent": self.risk_percent,
                 "stop_distance": round(stop_distance, 2),
                 "stop_distance_pct": round((stop_distance / price) * 100, 2),
             },

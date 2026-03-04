@@ -280,13 +280,8 @@ function updateUI(data) {
 
     set('volumeRatio', '--');
 
-    // Update confidence (if available)
-    if (data.confidence) {
-        updateConfidence(data.confidence);
-    } else {
-        set('confidenceValue', '--');
-        if (elements.confidenceFill) elements.confidenceFill.style.width = '0%';
-    }
+    // Update confidence/factors (always display factors even if confidence ML is missing)
+    updateConfidence(data);
 
     // Update trade setup
     updateTradeSetup(data.trade_setup);
@@ -298,27 +293,27 @@ function updateUI(data) {
 /**
  * Update confidence display
  */
-function updateConfidence(confidence) {
+function updateConfidence(data) {
+    const confidence = data.confidence;
+
     if (!confidence || confidence.score === 0) {
-        elements.confidenceValue.textContent = '--';
-        elements.confidenceFill.style.width = '0%';
-        return;
-    }
-
-    if (elements.confidenceValue) {
-        elements.confidenceValue.textContent = `${confidence.score}% (${confidence.level})`;
-        elements.confidenceValue.style.color = confidence.color;
-    }
-    if (elements.confidenceFill) elements.confidenceFill.style.width = `${confidence.score}%`;
-
-    if (elements.confidenceFill) {
-        elements.confidenceFill.className = 'confidence-fill';
-        if (confidence.level === 'HIGH') {
-            elements.confidenceFill.classList.add('high');
-        } else if (confidence.level === 'MEDIUM') {
-            elements.confidenceFill.classList.add('medium');
-        } else {
-            elements.confidenceFill.classList.add('low');
+        if (elements.confidenceValue) elements.confidenceValue.textContent = '--';
+        if (elements.confidenceFill) elements.confidenceFill.style.width = '0%';
+    } else {
+        if (elements.confidenceValue) {
+            elements.confidenceValue.textContent = `${confidence.score}% (${confidence.level})`;
+            elements.confidenceValue.style.color = confidence.color;
+        }
+        if (elements.confidenceFill) {
+            elements.confidenceFill.style.width = `${confidence.score}%`;
+            elements.confidenceFill.className = 'confidence-fill';
+            if (confidence.level === 'HIGH') {
+                elements.confidenceFill.classList.add('high');
+            } else if (confidence.level === 'MEDIUM') {
+                elements.confidenceFill.classList.add('medium');
+            } else {
+                elements.confidenceFill.classList.add('low');
+            }
         }
     }
 
