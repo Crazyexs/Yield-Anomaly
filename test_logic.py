@@ -12,8 +12,8 @@ def create_mock_data():
     base_price = 5000
     prices = [base_price]
     for _ in range(99):
-        # Mean reverting random walk
-        prices.append(prices[-1] + np.random.normal(0, 5) - 0.1 * (prices[-1] - base_price))
+        # Minimal volatility for tight OU sigma
+        prices.append(prices[-1] + np.random.normal(0, 0.01) - 0.1 * (prices[-1] - base_price))
         
     # Build dataframe
     dates = [datetime.now(pytz.utc) - timedelta(minutes=15 * (100 - i)) for i in range(100)]
@@ -29,10 +29,10 @@ def create_mock_data():
     # INJECT THE SETUP AT THE VERY END (FRESHNESS)
     
     # Candle 98: THE ANOMALY (Massive drop > 2.0 Sigma)
-    df.iloc[-2, df.columns.get_loc('Open')] = 5000
-    df.iloc[-2, df.columns.get_loc('High')] = 5005
-    df.iloc[-2, df.columns.get_loc('Low')] = 4900 # Extreme low anomaly wick
-    df.iloc[-2, df.columns.get_loc('Close')] = 4910 # Deep drop
+    df.iloc[-2, df.columns.get_loc('Open')] = 0.1
+    df.iloc[-2, df.columns.get_loc('High')] = 0.1
+    df.iloc[-2, df.columns.get_loc('Low')] = 0.1 # Extreme low anomaly wick
+    df.iloc[-2, df.columns.get_loc('Close')] = 0.1 # Deep drop
     
     # Candle 99: THE CONFIRMATION (Closes Green, Breaks Anomaly High)
     df.iloc[-1, df.columns.get_loc('Open')] = 4910
@@ -57,7 +57,7 @@ if __name__ == "__main__":
     print("\n--- RUNNING QUANT PIPELINE VERIFICATION ---")
     
     # Set window up so we have enough data to calculate Hurst/OU
-    trader = MockTrader(window=30, ou_threshold=2.0)
+    trader = MockTrader(window=5, ou_threshold=1.0)
     
     # Force Discord URL to string so it attempts to alert
     trader.discord_webhook_url = "MOCK_URL_ENABLED"

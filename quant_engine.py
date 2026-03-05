@@ -1,12 +1,14 @@
 """
-Yield Anomaly Detection Engine
-==============================
+Yield Anomaly Detection Engine — Multi-Factor Confluence
+=========================================================
 Mean reversion trading strategy using:
-- Log Returns & Z-Score for anomaly detection
-- Candle confirmation
-- Entry triggers at anomaly candle high/low breakout
+- Ornstein-Uhlenbeck process & Z-Score for anomaly detection
+- RSI Divergence, MFI, Bollinger Squeeze, Fibonacci confirmation
+- Multi-Factor Confluence Score (≥4/5 factors = trade)
+- Candle confirmation with volume filter
+- Entry triggers at Fibonacci 61.8% retracement
 - Stop loss at anomaly candle extreme
-- Take profit when Z-Score returns to mean (0)
+- Take profit at OU equilibrium (μ)
 """
 
 import yfinance as yf
@@ -287,7 +289,7 @@ class YieldAnomalyTrader:
         # Rolling Calibration for Hurst and OU (Needs minimum window)
         prices = df['Close'].values
         
-        for i in range(self.window * 2, len(prices)):
+        for i in range(self.window, len(prices)):
             window_prices = prices[i - self.window + 1 : i + 1]
             
             # --- 1. Compute Hurst Exponent ---
@@ -422,7 +424,7 @@ class YieldAnomalyTrader:
             kelly_f = max(0.0, (p_win * b - q_lose) / b)  # fractional Kelly
 
             # Regime quality: reward low Hurst (more mean-reverting)
-            regime_quality = max(0.0, 1.0 - (h / 0.45))  # maps [0,0.45] → [1,0]
+            regime_quality = max(0.0, 1.0 - (h / 0.50))  # maps [0,0.50] → [1,0]
 
             # Combined score 0-100
             score = kelly_f * regime_quality * hl_conf * 100
@@ -442,11 +444,11 @@ class YieldAnomalyTrader:
 
         # Mark anomalies
         # Condition 1: OU_Z exceeds asset-specific threshold
-        # Condition 2: Hurst < 0.45 (strictly mean-reverting, NOT borderline random walk)
-        df['Is_Anomaly'] = (abs(df['OU_Z']) >= z_thresh) & (df['Hurst'] < 0.45)
+        # Condition 2: Hurst < 0.50 (mean-reverting regime)
+        df['Is_Anomaly'] = (abs(df['OU_Z']) >= z_thresh) & (df['Hurst'] < 0.50)
         df['Anomaly_Type'] = np.where(
-            (df['OU_Z'] <= -z_thresh) & (df['Hurst'] < 0.45), 'OVERSOLD',
-            np.where((df['OU_Z'] >= z_thresh) & (df['Hurst'] < 0.45), 'OVERBOUGHT', 'NORMAL')
+            (df['OU_Z'] <= -z_thresh) & (df['Hurst'] < 0.50), 'OVERSOLD',
+            np.where((df['OU_Z'] >= z_thresh) & (df['Hurst'] < 0.50), 'OVERBOUGHT', 'NORMAL')
         )
         
         return df
@@ -566,10 +568,10 @@ class YieldAnomalyTrader:
             # Micro Stop-Loss: Placed exactly at the absolute bottom of the anomaly with a 0.05 ATR noise filter
             stop_loss = anomaly_low - (atr * 0.05)  
             
-            # Asymmetrical Take Profits based on OU Equlibrium
+            # Asymmetrical Take Profits based on OU Equilibrium
             tp1 = mean  # Mean Reversion Target (Equilibrium)
-            tp2 = mean + (latest['OU_Sigma'] * 1.5)  # Momentum cascade
-            tp3 = mean + (latest['OU_Sigma'] * 3.0)  # Extreme tail event
+            tp2 = mean + (latest['OU_Sigma'] * 1.5)  # μ + 1.5σ Momentum
+            tp3 = mean + (latest['OU_Sigma'] * 3.0)  # μ + 3.0σ Extreme
         else:
             direction = "SHORT"
             # Ultimate Sniper Matrix: Deep Golden Ratio 61.8% Limit Order inside the anomaly sweep
@@ -579,10 +581,10 @@ class YieldAnomalyTrader:
             # Micro Stop-Loss: Placed exactly at the absolute top of the anomaly with a 0.05 ATR noise filter
             stop_loss = anomaly_high + (atr * 0.05)  
             
-            # Asymmetrical Take Profits based on OU Equlibrium
+            # Asymmetrical Take Profits based on OU Equilibrium
             tp1 = mean
-            tp2 = mean - (latest['OU_Sigma'] * 1.5)
-            tp3 = mean - (latest['OU_Sigma'] * 3.0)
+            tp2 = mean - (latest['OU_Sigma'] * 1.5)  # μ - 1.5σ Momentum
+            tp3 = mean - (latest['OU_Sigma'] * 3.0)  # μ - 3.0σ Extreme
         
         stop_distance = abs(entry_trigger - stop_loss)
         if stop_distance == 0:
@@ -623,8 +625,8 @@ class YieldAnomalyTrader:
             "stop_loss": round(stop_loss, 2),
             "take_profit": {
                 "tp1": {"price": round(tp1, 2), "rr": round(abs(tp1-entry_trigger)/risk, 1) if risk > 0 else 0, "label": "OU Equilibrium (μ)"},
-                "tp2": {"price": round(tp2, 2), "rr": round(abs(tp2-entry_trigger)/risk, 1) if risk > 0 else 0, "label": "μ ± 1σ Momentum"},
-                "tp3": {"price": round(tp3, 2), "rr": round(abs(tp3-entry_trigger)/risk, 1) if risk > 0 else 0, "label": "μ ± 2σ Extreme"},
+                "tp2": {"price": round(tp2, 2), "rr": round(abs(tp2-entry_trigger)/risk, 1) if risk > 0 else 0, "label": "μ ± 1.5σ Momentum"},
+                "tp3": {"price": round(tp3, 2), "rr": round(abs(tp3-entry_trigger)/risk, 1) if risk > 0 else 0, "label": "μ ± 3.0σ Extreme"},
             },
             "risk_management": {
                 "risk_amount": round(risk_amount, 2),
@@ -754,7 +756,7 @@ class YieldAnomalyTrader:
         
         payload = {
             "content": "Signal Alert\n"
-                       "Quant Analysis Deverloped by <@732560547345858570>\n"
+                       "Quant Analysis Developed by <@732560547345858570>\n"
                        "Not financial advice na ja :> ",
             "embeds": [embed]
         }
