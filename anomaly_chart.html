@@ -41,9 +41,7 @@
 
         <!-- Asset Navigation -->
         <div class="asset-tabs">
-            <button class="asset-tab active" data-ticker="MNQ">CME_MNQ</button>
-            <button class="asset-tab" data-ticker="MGC">COMEX_MGC</button>
-            <button class="asset-tab" data-ticker="ES">CME_ES</button>
+            <button class="asset-tab active" data-ticker="XAUUSD">Gold Spot (OANDA)</button>
         </div>
 
         <!-- Main Grid -->
@@ -51,7 +49,7 @@
             <!-- Chart Section -->
             <section class="chart-card" style="grid-column: span 2;">
                 <div class="card-header">
-                    <h3 class="card-title" id="chartTitle">QUANT_ANOMALIES | ^NDX</h3>
+                    <h3 class="card-title" id="chartTitle">QUANT_ANOMALIES | XAUUSD</h3>
                     <div class="chart-legend">
                         <span class="legend-item"><span class="dot" style="background:#22d3ee"></span>LOG_RETURN</span>
                         <span class="legend-item"><span class="dot" style="background:#22c55e"></span>BULL_SIGNAL</span>
@@ -125,7 +123,7 @@
         const Z_THRESHOLD = 2.0;
 
         // State
-        let currentTicker = 'MNQ';
+        let currentTicker = 'XAUUSD';
         let chart = null;
         // Global series references
         let lineSeries = null;
