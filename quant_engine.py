@@ -154,7 +154,6 @@ class YieldAnomalyTrader:
         1. TradingView (tvDatafeed) — live CME/COMEX data matching broker prices
         2. yfinance continuous contract (MNQ=F) — silent fallback
         """
-        from tvDatafeed import TvDatafeed, Interval
         import io, contextlib
 
         instrument = self.ASSET_MAPPING.get(ticker.upper(), ticker.upper())
@@ -184,6 +183,7 @@ class YieldAnomalyTrader:
         # ── Source 1: TradingView (live, matches broker) ──────────────────────
         def _try_tv():
             try:
+                from tvDatafeed import TvDatafeed, Interval as TvInterval  # optional dep
                 buf = io.StringIO()
                 with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
                     tv = TvDatafeed()
@@ -196,6 +196,8 @@ class YieldAnomalyTrader:
                         'open': 'Open', 'high': 'High',
                         'low': 'Low', 'close': 'Close', 'volume': 'Volume'
                     })
+            except ImportError:
+                pass  # tvDatafeed not installed — use yfinance fallback
             except Exception:
                 pass
             return None
