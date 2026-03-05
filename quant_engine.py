@@ -61,6 +61,14 @@ class YieldAnomalyTrader:
         'MGC': 2.0,
     }
 
+    # TradingView exchange mapping per instrument
+    # TradingView pulls live CME/COMEX data matching broker feeds like TradeSea
+    TV_EXCHANGE_MAP = {
+        'MNQ': 'CME',
+        'ES':  'CME',
+        'MGC': 'COMEX',
+    }
+
     @staticmethod
     def get_active_contract_suffix() -> str:
         """Return the current active CME quarterly contract letter+year suffix.
@@ -110,13 +118,26 @@ class YieldAnomalyTrader:
         self.load_alert_history()
     
     def load_alert_history(self):
-        """Load alert history from disk."""
+        """Load alert history from disk. Handles empty files and legacy string-format entries."""
         try:
             if os.path.exists('alert_history.json'):
                 with open('alert_history.json', 'r') as f:
-                    self.alert_history = json.load(f)
+                    content = f.read().strip()
+                    if not content:
+                        self.alert_history = {}
+                        return
+                    raw = json.loads(content)
+                    # Migrate legacy format: {ticker: "timestamp_string"} -> {ticker: {last_signal_time: ...}}
+                    migrated = {}
+                    for k, v in raw.items():
+                        if isinstance(v, str):
+                            migrated[k] = {'last_signal_time': v, 'cooldown_until': None}
+                        else:
+                            migrated[k] = v
+                    self.alert_history = migrated
         except Exception as e:
             print(f"Error loading alert history: {e}")
+            self.alert_history = {}
 
     def save_alert_history(self):
         """Save alert history to disk."""
@@ -127,73 +148,115 @@ class YieldAnomalyTrader:
             print(f"Error saving alert history: {e}")
     
     def fetch_data(self, ticker: str) -> Tuple[pd.DataFrame, str]:
-        """Fetch OHLCV data from Yahoo Finance.
+        """Fetch OHLCV data.
 
-        Strategy:
-        1. Try the explicit active quarterly contract (e.g. MNQM26=F) — matches broker prices.
-        2. Fall back to continuous front-month (e.g. MNQ=F) if explicit has no data.
-        3. Tag the DataFrame with staleness metadata for API response warnings.
+        Priority:
+        1. TradingView (tvDatafeed) — live CME/COMEX data matching broker prices
+        2. yfinance continuous contract (MNQ=F) — silent fallback
         """
+        from tvDatafeed import TvDatafeed, Interval
+        import io, contextlib
+
         instrument = self.ASSET_MAPPING.get(ticker.upper(), ticker.upper())
+        exchange   = self.TV_EXCHANGE_MAP.get(instrument, 'CME')
+        continuous_contract = f"{instrument}=F"
 
-        active_contract = self.build_contract_ticker(instrument)   # e.g. MNQM26=F
-        continuous_contract = f"{instrument}=F"                    # e.g. MNQ=F
+        TV_INTERVAL_MAP = {
+            '1m':  Interval.in_1_minute,
+            '5m':  Interval.in_5_minute,
+            '15m': Interval.in_15_minute,
+            '30m': Interval.in_30_minute,
+            '1h':  Interval.in_1_hour,
+            '4h':  Interval.in_4_hour,
+            '1d':  Interval.in_daily,
+        }
+        tv_interval = TV_INTERVAL_MAP.get(self.interval, Interval.in_15_minute)
 
-        fetch_period = self.period
-        if self.interval == '1m' and fetch_period not in ['1d', '5d']:
-            fetch_period = '5d'
+        bars_per_day = {'1m': 390, '5m': 78, '15m': 26, '30m': 13, '1h': 7, '4h': 2, '1d': 1}
+        days_map = {'1d': 1, '2d': 2, '5d': 5, '10d': 10, '1mo': 22, '3mo': 65}
+        days = days_map.get(self.period, 5)
+        n_bars = bars_per_day.get(self.interval, 26) * days + 50
 
         df = pd.DataFrame()
-        resolved = active_contract
+        resolved = continuous_contract
+        source = 'none'
 
-        for candidate in [active_contract, continuous_contract]:
-            if not df.empty:
-                break
+        # ── Source 1: TradingView (live, matches broker) ──────────────────────
+        def _try_tv():
             try:
-                result = yf.download(
-                    candidate, period=fetch_period,
-                    interval=self.interval, progress=False
-                )
+                buf = io.StringIO()
+                with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+                    tv = TvDatafeed()
+                    tv_df = tv.get_hist(
+                        symbol=instrument, exchange=exchange,
+                        interval=tv_interval, n_bars=n_bars
+                    )
+                if tv_df is not None and not tv_df.empty:
+                    return tv_df.rename(columns={
+                        'open': 'Open', 'high': 'High',
+                        'low': 'Low', 'close': 'Close', 'volume': 'Volume'
+                    })
+            except Exception:
+                pass
+            return None
+
+        tv_result = _try_tv()
+        if tv_result is not None and not tv_result.empty:
+            df = tv_result
+            resolved = f"{instrument}:TV"
+            source = 'TradingView'
+
+        # ── Source 2: yfinance continuous (fallback) ──────────────────────────
+        if df.empty:
+            fetch_period = self.period
+            if self.interval == '1m' and fetch_period not in ['1d', '5d']:
+                fetch_period = '5d'
+            try:
+                buf = io.StringIO()
+                with contextlib.redirect_stderr(buf):
+                    result = yf.download(
+                        continuous_contract, period=fetch_period,
+                        interval=self.interval, progress=False
+                    )
                 if result is not None and not result.empty:
+                    if isinstance(result.columns, pd.MultiIndex):
+                        result.columns = result.columns.get_level_values(0)
                     df = result
-                    resolved = candidate
+                    resolved = continuous_contract
+                    source = 'yfinance'
             except Exception:
                 pass
 
         if df.empty:
             raise ValueError(
-                f"No data for {ticker} "
-                f"(tried {active_contract} and {continuous_contract}). "
-                "This is usually caused by a network or firewall block."
+                f"No data for {ticker}. "
+                "TradingView and yfinance both failed — check your network connection."
             )
 
-        # Handle MultiIndex columns (newer yfinance versions)
-        if isinstance(df.columns, pd.MultiIndex):
-            df.columns = df.columns.get_level_values(0)
-
-        # Standardize Timezone to Asia/Bangkok (UTC+7)
+        # Standardize timezone to Asia/Bangkok (UTC+7)
         target_tz = pytz.timezone('Asia/Bangkok')
         if df.index.tz is None:
             df.index = df.index.tz_localize(pytz.utc)
         df.index = df.index.tz_convert(target_tz)
 
-        # Staleness detection: Yahoo Finance has ~15 min delay on futures
+        # Staleness detection
         now_bkk = datetime.now(pytz.timezone('Asia/Bangkok'))
         last_candle_time = df.index[-1]
         age_minutes = max(0.0, (now_bkk - last_candle_time).total_seconds() / 60)
-        df.attrs['stale'] = age_minutes > 20
+        stale = age_minutes > 20
+
+        df.attrs['stale'] = stale
         df.attrs['age_minutes'] = round(age_minutes, 1)
         df.attrs['resolved_ticker'] = resolved
-        df.attrs['is_active_contract'] = (resolved == active_contract)
-        df.attrs['active_contract'] = active_contract
+        df.attrs['is_active_contract'] = (source == 'TradingView')
+        df.attrs['active_contract'] = f"{instrument}:{exchange}"
+        df.attrs['source'] = source
 
-        label = 'active contract' if resolved == active_contract else 'continuous (fallback)'
-        stale_warn = f" ⚠️ STALE ({age_minutes:.0f}min old)" if age_minutes > 20 else ""
-        print(f"  [DATA] {resolved} ({label}) | Last candle: {age_minutes:.0f}min ago{stale_warn}")
+        stale_warn = f" ⚠️ STALE ({age_minutes:.0f}min)" if stale else ""
+        print(f"  [DATA] {resolved} via {source} | Last candle: {age_minutes:.0f}min ago{stale_warn}")
 
         return df, resolved
 
-    
     def calculate_indicators(self, df: pd.DataFrame, instrument_code: str = '') -> pd.DataFrame:
         """Calculate OHLCV technical and quantitative indicators (Hurst + OU).
         
