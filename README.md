@@ -47,6 +47,9 @@ The core strategy relies on the statistical properties of asset returns and regi
     
     # Ensure advanced math libraries are installed
     pip install statsmodels hurst yfinance pandas flask requests
+    
+    # Install TradingView Datafeed (Required for true broker-matching prices)
+    pip install git+https://github.com/rongardF/tvdatafeed.git
     ```
 
 ### Windows Setup
@@ -59,6 +62,9 @@ The core strategy relies on the statistical properties of asset returns and regi
     
     # Ensure advanced math libraries are installed
     pip install statsmodels hurst yfinance pandas flask requests
+    
+    # Install TradingView Datafeed (Required for true broker-matching prices)
+    pip install git+https://github.com/rongardF/tvdatafeed.git
     ```
 
 ## Usage

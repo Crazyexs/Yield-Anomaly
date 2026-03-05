@@ -160,17 +160,6 @@ class YieldAnomalyTrader:
         exchange   = self.TV_EXCHANGE_MAP.get(instrument, 'CME')
         continuous_contract = f"{instrument}=F"
 
-        TV_INTERVAL_MAP = {
-            '1m':  Interval.in_1_minute,
-            '5m':  Interval.in_5_minute,
-            '15m': Interval.in_15_minute,
-            '30m': Interval.in_30_minute,
-            '1h':  Interval.in_1_hour,
-            '4h':  Interval.in_4_hour,
-            '1d':  Interval.in_daily,
-        }
-        tv_interval = TV_INTERVAL_MAP.get(self.interval, Interval.in_15_minute)
-
         bars_per_day = {'1m': 390, '5m': 78, '15m': 26, '30m': 13, '1h': 7, '4h': 2, '1d': 1}
         days_map = {'1d': 1, '2d': 2, '5d': 5, '10d': 10, '1mo': 22, '3mo': 65}
         days = days_map.get(self.period, 5)
@@ -184,6 +173,18 @@ class YieldAnomalyTrader:
         def _try_tv():
             try:
                 from tvDatafeed import TvDatafeed, Interval as TvInterval  # optional dep
+                
+                TV_INTERVAL_MAP = {
+                    '1m':  TvInterval.in_1_minute,
+                    '5m':  TvInterval.in_5_minute,
+                    '15m': TvInterval.in_15_minute,
+                    '30m': TvInterval.in_30_minute,
+                    '1h':  TvInterval.in_1_hour,
+                    '4h':  TvInterval.in_4_hour,
+                    '1d':  TvInterval.in_daily,
+                }
+                tv_interval = TV_INTERVAL_MAP.get(self.interval, TvInterval.in_15_minute)
+
                 buf = io.StringIO()
                 with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
                     tv = TvDatafeed()
