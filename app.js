@@ -9,7 +9,7 @@ const API_BASE = '/api';
 const REFRESH_INTERVAL = 5000; // 5 seconds (Real-Time Polling)
 
 // State
-let currentTicker = 'MNQ';
+let currentTicker = 'XAUUSD';
 let logReturnChart = null;
 let zScoreChart = null;
 let refreshTimer = null;

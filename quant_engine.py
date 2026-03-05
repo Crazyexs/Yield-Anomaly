@@ -38,35 +38,25 @@ class YieldAnomalyTrader:
     
     # Instrument code -> display name
     ASSET_NAMES = {
-        'MNQ': 'CME MNQ (Micro NASDAQ)',
-        'MGC': 'COMEX MGC (Micro Gold)',
-        'ES':  'CME ES (E-mini S&P 500)',
+        'XAUUSD': 'Gold Spot / U.S. Dollar (OANDA)',
     }
 
     # Input alias -> instrument base code
     ASSET_MAPPING = {
-        'MNQ': 'MNQ',
-        'NASDAQ': 'MNQ',
-        'MGC': 'MGC',
-        'GOLD': 'MGC',
-        'ES': 'ES',
-        'SP500': 'ES',
+        'XAUUSD': 'XAUUSD',
+        'GOLD': 'XAUUSD',
+        'XAU': 'XAUUSD',
     }
 
     # Issue 2: Asset-specific OU Z-score thresholds
-    # MNQ is far more volatile, requiring 2.5σ to filter out noise moves
     ASSET_OU_THRESHOLD = {
-        'MNQ': 2.5,
-        'ES':  2.0,
-        'MGC': 2.0,
+        'XAUUSD': 2.0,
     }
 
     # TradingView exchange mapping per instrument
     # TradingView pulls live CME/COMEX data matching broker feeds like TradeSea
     TV_EXCHANGE_MAP = {
-        'MNQ': 'CME',
-        'ES':  'CME',
-        'MGC': 'COMEX',
+        'XAUUSD': 'OANDA',
     }
 
     @staticmethod
@@ -157,8 +147,9 @@ class YieldAnomalyTrader:
         import io, contextlib
 
         instrument = self.ASSET_MAPPING.get(ticker.upper(), ticker.upper())
-        exchange   = self.TV_EXCHANGE_MAP.get(instrument, 'CME')
-        continuous_contract = f"{instrument}=F"
+        exchange   = self.TV_EXCHANGE_MAP.get(instrument, 'OANDA')
+        # For XAUUSD, the best yfinance fallback is Gold Futures (GC=F)
+        continuous_contract = "GC=F" if instrument == "XAUUSD" else f"{instrument}=F"
 
         bars_per_day = {'1m': 390, '5m': 78, '15m': 26, '30m': 13, '1h': 7, '4h': 2, '1d': 1}
         days_map = {'1d': 1, '2d': 2, '5d': 5, '10d': 10, '1mo': 22, '3mo': 65}
@@ -1009,8 +1000,7 @@ if __name__ == "__main__":
         account_balance=10000.0,
         discord_webhook_url=DISCORD_URL
     )
-    
-    assets = ['MNQ', 'MGC', 'ES']
+    assets = ['XAUUSD']
     
     print("\n" + "YIELD ANOMALY TRADING ENGINE".center(70))
     print("=" * 70)

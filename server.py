@@ -52,7 +52,7 @@ def analyze(ticker):
     Get full analysis for a specific ticker.
     
     Params:
-        ticker: Asset identifier (NDX, XAU, SPX, BTC or direct ticker)
+        ticker: Asset identifier (XAUUSD)
     
     Returns:
         JSON with complete quant analysis report
@@ -102,10 +102,10 @@ def analyze_all():
     Get analysis for all supported assets.
     
     Returns:
-        JSON with analysis for NDX, XAU, SPX, BTC
+        JSON with analysis for XAUUSD
     """
     results = {}
-    assets = ['MNQ', 'MGC', 'ES']
+    assets = ['XAUUSD']
     
     for asset in assets:
         try:
